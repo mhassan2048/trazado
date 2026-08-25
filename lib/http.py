@@ -9,10 +9,34 @@ make the competition chooser unusably slow.
 
 from __future__ import annotations
 
+import os
 import threading
 import time
 
 BASE = "https://www.whoscored.com"
+
+# Optional proxy, off unless asked for.
+#
+#   export TRAZADO_PROXY=socks5://127.0.0.1:9050    # Tor, as the Zauberpass
+#                                                    # bulk pipeline uses
+#
+# The matchday scraper this app follows goes direct, and direct is right for
+# the common case: section 1 promises every match is fetched fresh, and a proxy
+# adds a round trip to every request. But WhoScored rate limits bursts, and a
+# shared or datacentre IP gets throttled far harder than a home connection --
+# so it is one env var away rather than a code change.
+PROXY_ENV = "TRAZADO_PROXY"
+
+
+def proxy() -> str | None:
+    value = os.environ.get(PROXY_ENV, "").strip()
+    return value or None
+
+
+def proxy_status() -> str:
+    """One line describing how requests will leave this machine."""
+    where = proxy()
+    return f"via {where}" if where else "direct (no proxy)"
 
 # curl_cffi sessions are not safe to share across threads, and the competition
 # chooser resolves six competitions at once. Each thread gets its own, built
@@ -36,6 +60,9 @@ def session():
             "Install it with: pip install curl_cffi"
         ) from exc
     made = requests.Session(impersonate="chrome120")
+    where = proxy()
+    if where:
+        made.proxies = {"http": where, "https": where}
     try:
         made.get(BASE, timeout=15)
         time.sleep(0.6)
@@ -69,8 +96,11 @@ def get(url: str, *, referer: str | None = None, timeout: int = 30,
             time.sleep(2.0)
             continue
         if response.status_code == 403:
+            hint = ("" if proxy() else
+                    f" If this keeps happening, route through a proxy: "
+                    f"export {PROXY_ENV}=socks5://127.0.0.1:9050")
             raise FetchError(
                 "WhoScored refused the request (403). It rate limits bursts; "
-                "wait a moment and try again.")
+                f"wait a moment and try again.{hint}")
         raise FetchError(f"WhoScored returned status {response.status_code}.")
     raise FetchError("WhoScored refused the request (403).")

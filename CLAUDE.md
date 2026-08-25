@@ -60,6 +60,18 @@ Fixture status `6` means finished. Anything else is unplayed, in progress or aba
 
 Section 1 governs match event data: that is never held between visits. The schedule layer — which season is live, which fixtures exist — is navigation metadata and is held for three minutes. Without that, clicking a theme would cost six network requests. The analysis itself is always fetched fresh, which is the promise that actually matters.
 
+### Proxy
+
+Off by default, one env var away:
+
+```
+export TRAZADO_PROXY=socks5://127.0.0.1:9050
+```
+
+Direct is right for the common case. The Zauberpass **matchday** scraper this app follows goes direct via curl_cffi; the Tor proxy lives in `data_pipeline_app.py`, which is the bulk `soccerdata` path for pulling whole seasons — a different job with a different request volume. And section 1 promises every match is fetched fresh, so a round trip added to every request is a real cost.
+
+But WhoScored rate limits bursts, and a shared or datacentre IP gets throttled far harder than a home connection. `lib/http.py` is the only place a session is built, so the proxy is set in one function and every caller inherits it. The 403 message names the env var when no proxy is set.
+
 ### Why our own scraper
 
 The Zauberpass scraper builds the full qualifier map and then keeps a whitelist of about forty booleans. That discards `ThrowIn`, `GoalKick`, `IndirectFreekickTaken`, `Length`, `Angle`, every shot situation tag and the whole goalkeeper vocabulary. Throw-ins become undetectable, which removes a feature outright.
