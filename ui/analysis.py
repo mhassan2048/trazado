@@ -69,6 +69,119 @@ def _summary(pieces, team: str) -> str:
     return f'<div class="tz-strip">{inner}</div>'
 
 
+BADGE = {CORNER: "CO", FREEKICK: "FK", THROW_IN: "TI", PENALTY: "PK",
+         GOAL_KICK: "GK"}
+
+
+def _zone(piece) -> str:
+    """
+    A goal kick's zone is computed for attacking-half deliveries and means
+    nothing at the other end of the pitch, so it is left blank rather than
+    printed as noise.
+    """
+    if piece.kind == GOAL_KICK or piece.zone in ("", "unknown"):
+        return "&mdash;"
+    return piece.zone
+
+
+def _ledger(pieces, home: str) -> str:
+    """
+    The ledger as notation, not as a spreadsheet.
+
+    Each row carries the same vocabulary the charts use: a solid rule where the
+    delivery found a teammate, dashed where it was cleared, the accent only
+    where it led to a shot, and a filled or hollow marker for the duel.
+    """
+    rows = []
+    for piece in pieces:
+        contact = piece.contact
+        shot = piece.shots[0] if piece.shots else None
+
+        line_class = "tz-l-solid" if piece.complete else "tz-l-dash"
+        if piece.led_to_shot:
+            line_class += " tz-l-hot"
+
+        if contact is None:
+            marker = '<span class="tz-dot tz-dot--none"></span>'
+            who = "&mdash;"
+        else:
+            filled = "tz-dot--won" if contact.attacking else "tz-dot--lost"
+            marker = f'<span class="tz-dot {filled}"></span>'
+            who = f"{contact.player}<span class='tz-ct'>{contact.type}</span>"
+
+        if shot is None:
+            result = '<span class="tz-out">&mdash;</span>'
+        elif piece.goal:
+            result = f'<span class="tz-out tz-out--goal">GOAL {shot.player}</span>'
+        else:
+            phase = "2nd" if shot.phase == setpieces.SECOND_PHASE else "1st"
+            result = (f'<span class="tz-out tz-out--shot">{phase} &middot; '
+                      f'{shot.player}</span>')
+
+        rows.append(f"""
+<div class="tz-row-l{' tz-row-l--goal' if piece.goal else ''}">
+  <div class="tz-l-min">{piece.clock}</div>
+  <div class="tz-l-state">{piece.state}</div>
+  <div class="tz-l-glyph"><span class="tz-badge tz-badge--{piece.kind}">{BADGE.get(piece.kind, '??')}</span></div>
+  <div class="tz-l-what">
+    <div class="tz-l-taker">{piece.taker or '&mdash;'}</div>
+    <div class="tz-l-sub">{piece.team} &middot; {piece.subtype}</div>
+  </div>
+  <div class="tz-l-line"><i class="{line_class}"></i></div>
+  <div class="tz-l-zone">{_zone(piece)}</div>
+  <div class="tz-l-contact">{marker}{who}</div>
+  <div class="tz-l-result">{result}</div>
+</div>""")
+
+    head = """
+<div class="tz-row-l tz-row-l--head">
+  <div class="tz-l-min">Min</div><div class="tz-l-state">State</div>
+  <div class="tz-l-glyph">Type</div><div class="tz-l-what">Taker</div>
+  <div class="tz-l-line">Delivery</div><div class="tz-l-zone">Zone</div>
+  <div class="tz-l-contact">First Contact</div><div class="tz-l-result">Outcome</div>
+</div>"""
+    return f'<div class="tz-ledger">{head}{"".join(rows)}</div>'
+
+
+def _export_panel(match, pieces, theme: str) -> None:
+    """
+    Section 7's card, one visual at a time.
+
+    Every visual is exportable, not just the delivery map -- a chart that can
+    only be seen inside the app is a chart nobody sends to anyone. Team-scoped
+    visuals render one card per side; match-scoped ones render a single card.
+
+    The card takes the app's theme. Section 7 allowed choosing it separately;
+    in practice that was a second control to set before you could download
+    something you were already looking at.
+    """
+    st.markdown('<div class="tz-sec">Export</div>', unsafe_allow_html=True)
+
+    keys = list(VISUALS)
+    chosen = st.radio(
+        "Visual", keys, horizontal=True, key="export_visual",
+        format_func=lambda k: VISUALS[k]["label"], label_visibility="collapsed")
+
+    spec = VISUALS[chosen]
+    if spec["team"]:
+        teams = [t for t in (match.meta["home_team"], match.meta["away_team"])
+                 if any(p.team == t for p in pieces)]
+    else:
+        teams = [None]
+
+    columns = st.columns(len(teams)) if len(teams) > 1 else [st.container()]
+    for column, team in zip(columns, teams):
+        with column:
+            png = card(match, pieces, visual=chosen, team=team, theme=theme)
+            st.image(png, use_container_width=True)
+            who = team or match.meta["match_name"]
+            safe = "".join(c if c.isalnum() else "-" for c in who).strip("-").lower()
+            st.download_button(
+                f"Download {who}", data=png,
+                file_name=f"trazado-{chosen}-{safe}.png", mime="image/png",
+                use_container_width=True, key=f"dl_{chosen}_{who}")
+
+
 def render(match, theme: str) -> None:
     palette = THEMES.get(theme, THEMES["vivid"])
     pieces = setpieces.extract(match)
