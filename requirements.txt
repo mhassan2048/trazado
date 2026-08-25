@@ -4,6 +4,10 @@
 # plain requests, so this is not optional.
 curl_cffi>=0.7
 pandas>=2.0
+# Pillow loads the club crests onto the export cards. matplotlib pulls it in
+# transitively today, but a chart library dropping an image dependency should
+# not silently remove the crests from every card.
+pillow>=10.0
 streamlit>=1.36
 matplotlib>=3.8
 mplsoccer>=1.4
