@@ -96,7 +96,7 @@ def main() -> None:
         # Fetched fresh every time, per section 1. Nothing is cached here.
         named = competition_by_key(competition) if competition else None
         try:
-            with st.spinner("Pulling the match from WhoScored…"):
+            with st.spinner("Loading match…"):
                 match = whoscored.fetch(
                     match_id, competition=named.name if named else "")
         except Exception as exc:
