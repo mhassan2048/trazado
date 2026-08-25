@@ -86,7 +86,9 @@ Four things follow, and all four are implemented:
 - **A failed lookup must not read as an empty competition.** "Coming soon" is a claim about the football; "Unavailable" is a claim about us. Showing the first when the second is true is quietly wrong about every competition at once, which is exactly what a throttled deploy produces.
 - **An unreachable competition stays clickable.** We cannot assert it is empty, and clicking is how you retry.
 
-- **A circuit breaker stops the retry ladder repeating.** When the address is being refused, every request will be refused, and paying full retries on each turned a failed chooser into 39 seconds of spinner. Two consecutive failures open the circuit; later calls fail immediately for a cooldown, and one success closes it. The failure path is now about five seconds.
+- **A circuit breaker, for a total outage only.** It must not fire on rate limiting. Tripping it at two consecutive failures turned "some competitions failed" into "half the competitions failed", because everything after the trip got one attempt and no retry — which is the exact symptom a hosted deploy showed while working perfectly on a laptop. Rate limiting is what retries are *for*. It now trips at five, which needs a run of failures that intermittent refusal will not produce, since any success resets the count. Note a failure is recorded once per request after its retries are exhausted, not once per attempt, so a trip above the number of competitions is unreachable.
+
+- **Whatever fails gets a second, slower pass.** A shared address is refused intermittently rather than blocked, and the same request succeeds moments later. Retrying the stragglers one at a time costs nothing when the first pass worked, and is the difference between half the leagues loading and all of them. Measured with refusals injected at the transport layer: at 50% refusal, 6/6 load in about 12 seconds.
 
 When something does fail the chooser says so once, with the reason, rather than leaving a wall of dashes to be interpreted.
 

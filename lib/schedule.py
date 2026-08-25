@@ -17,6 +17,7 @@ from __future__ import annotations
 import html as html_module
 import json
 import re
+import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
@@ -305,7 +306,25 @@ def summarise_all(competitions, days: int = 10,
         except Exception as exc:
             return competition.key, failed(competition, str(exc))
 
-    return dict(http.politely(one, competitions))
+    results = dict(http.politely(one, competitions))
+
+    # Second pass, one at a time, for whatever failed.
+    #
+    # A shared address gets refused intermittently rather than blocked, so a
+    # first pass typically loses a few competitions rather than all of them --
+    # and those same requests succeed moments later. Retrying the stragglers
+    # slowly costs nothing when everything worked, and is the difference
+    # between half the leagues loading and all of them.
+    stragglers = [c for c in competitions if not results[c.key].ok]
+    if stragglers and len(stragglers) < len(tuple(competitions)):
+        time.sleep(1.0)
+        for competition in stragglers:
+            key, summary = one(competition)
+            if summary.ok:
+                results[key] = summary
+            time.sleep(0.4)
+
+    return results
 
 
 def board(season: Season, days: int = 10,

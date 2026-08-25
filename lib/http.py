@@ -96,12 +96,22 @@ def politely(work, items):
 # on first use and reused thereafter.
 _local = threading.local()
 
-# Circuit breaker. When WhoScored is refusing this address, every request will
-# be refused, and paying the full retry ladder on each one turned a failed
-# competition chooser into 39 seconds of spinner followed by six identical
-# errors. After a few consecutive failures the circuit opens and calls fail
-# immediately; one success closes it.
-_BREAKER_TRIP = int(os.environ.get("TRAZADO_BREAKER", "2"))
+# Circuit breaker, for a total outage only.
+#
+# It exists so a completely unreachable host does not cost 39 seconds of
+# spinner. It must NOT fire on rate limiting: being refused half the time is
+# the normal signal from a shared address, and those requests succeed on
+# retry. Tripping at two turned "some competitions failed" into "half the
+# competitions failed", because everything after the trip got a single attempt
+# and no retry. It now takes a run of failures long enough that no plausible
+# rate limit explains it.
+#
+# Five, not eight: a failure is recorded once per get() after its retries are
+# exhausted, not once per attempt, so with six competitions a trip above six is
+# unreachable and a total outage never fails fast. Five needs a run that rate
+# limiting will not produce, because rate limiting lets some requests through
+# and any success resets the count.
+_BREAKER_TRIP = int(os.environ.get("TRAZADO_BREAKER", "5"))
 _BREAKER_COOLDOWN = float(os.environ.get("TRAZADO_COOLDOWN", "30"))
 _breaker = {"failures": 0, "opened_at": 0.0}
 _breaker_lock = threading.Lock()
@@ -182,7 +192,8 @@ def get(url: str, *, referer: str | None = None, timeout: int = 20,
     """
     headers = {"Referer": referer} if referer else {}
     last = ""
-    # Once the circuit is open, do not retry -- the answer will be the same.
+    # Only a total outage skips retries. A 403 from a rate limit is exactly
+    # the case retries are for.
     if _circuit_open():
         retries = 0
     for attempt in range(retries + 1):
