@@ -28,16 +28,65 @@ BASE = "https://www.whoscored.com"
 # so it is one env var away rather than a code change.
 PROXY_ENV = "TRAZADO_PROXY"
 
+# How hard we are willing to hit WhoScored at once. Two is deliberate: a
+# hosted deploy shares a datacentre egress IP and six simultaneous requests
+# from that pool reads as abuse regardless of what this app is doing.
+MAX_PARALLEL = int(os.environ.get("TRAZADO_PARALLEL", "2"))
+STAGGER = float(os.environ.get("TRAZADO_STAGGER", "0.35"))
+
+
+def _from_secrets() -> str | None:
+    """
+    Streamlit Cloud sets secrets, not environment variables.
+
+    Read lazily and defensively: importing streamlit outside a script run, or
+    touching st.secrets with no secrets file, both raise.
+    """
+    try:
+        import streamlit as st
+        value = st.secrets.get("TRAZADO_PROXY", "")
+    except Exception:
+        return None
+    value = str(value).strip()
+    return value or None
+
 
 def proxy() -> str | None:
-    value = os.environ.get(PROXY_ENV, "").strip()
-    return value or None
+    return os.environ.get(PROXY_ENV, "").strip() or _from_secrets()
 
 
 def proxy_status() -> str:
     """One line describing how requests will leave this machine."""
     where = proxy()
-    return f"via {where}" if where else "direct (no proxy)"
+    if not where:
+        return "direct (no proxy)"
+    # Never echo credentials embedded in a proxy URL.
+    safe = where.split("@")[-1] if "@" in where else where
+    return f"via {safe}"
+
+
+def politely(work, items):
+    """
+    Run `work` over `items` with a small pool and a stagger between starts.
+
+    Six requests fired simultaneously is what a scraper looks like. The same
+    six spread over a couple of seconds is what a browser looks like, and the
+    wall-clock difference on a page nobody is watching load is negligible.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    items = list(items)
+    if not items:
+        return []
+
+    def staggered(indexed):
+        index, item = indexed
+        time.sleep(STAGGER * index + random.uniform(0, STAGGER))
+        return work(item)
+
+    workers = max(1, min(MAX_PARALLEL, len(items)))
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        return list(pool.map(staggered, enumerate(items)))
 
 # curl_cffi sessions are not safe to share across threads, and the competition
 # chooser resolves six competitions at once. Each thread gets its own, built

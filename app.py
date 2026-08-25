@@ -22,7 +22,12 @@ from ui import analysis, competitions, matches, theme as theming  # noqa: E402
 from ui.chrome import header, link             # noqa: E402
 
 
-@st.cache_data(ttl=180, show_spinner=False)
+# Fifteen minutes, not three. This is navigation metadata -- which season is
+# live, which fixtures exist -- and it changes on the timescale of a matchday,
+# not a page load. A short TTL meant a hosted deploy re-fetched every few
+# minutes and spent its whole rate-limit budget on data that had not moved.
+# Section 1 governs match event data, which is still never cached.
+@st.cache_data(ttl=900, show_spinner="Checking what has been played…")
 def summaries():
     """Which season is live, and how many matches are openable right now."""
     return schedule.summarise_all(COMPETITIONS)

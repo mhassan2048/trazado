@@ -55,3 +55,59 @@ python scripts/validate_chain.py 60      # chain vs the feed's own tags
 
 Data from Opta via WhoScored. Club crests and competition logos are trademarks
 of their respective owners.
+
+## Deploying
+
+Trazado scrapes WhoScored on demand, and WhoScored throttles **datacentre
+addresses far harder than home connections**. A hosted deploy shares a small
+pool of egress IPs with every other app on the platform, so the same request
+pattern that works from a laptop can be refused almost entirely from
+Streamlit Community Cloud.
+
+Three things matter, in order of how much they help.
+
+### 1. Give it a cleaner exit address
+
+The single reliable fix. Any HTTP or SOCKS5 proxy whose exit is not a
+datacentre range:
+
+```bash
+export TRAZADO_PROXY=socks5://user:pass@host:port
+```
+
+On Streamlit Cloud there are no environment variables — put it in
+**Settings → Secrets** instead:
+
+```toml
+TRAZADO_PROXY = "socks5://user:pass@host:port"
+```
+
+Both are read automatically; the environment variable wins if you set both.
+Credentials are never echoed back in status output or error messages.
+
+### 2. Self-host
+
+Anywhere with its own IP — a VPS, a home machine, a Tailscale funnel — avoids
+the shared-pool problem entirely. `streamlit run app.py` is the whole
+deployment; there is no database and nothing to persist.
+
+### 3. Tune the request pressure
+
+Defaults are already conservative. Loosen them if your address is trusted,
+tighten them if you are still being refused:
+
+| variable | default | what it does |
+|---|---|---|
+| `TRAZADO_PARALLEL` | `2` | simultaneous requests to WhoScored |
+| `TRAZADO_STAGGER` | `0.35` | seconds between request starts |
+
+Six-way parallel looks like a scraper; two requests spread over a couple of
+seconds looks like a browser. The cold competition chooser takes about eight
+seconds either way once, then is cached for fifteen minutes.
+
+### Reading the failure
+
+The chooser tells you which case you are in. **"Coming soon"** means nothing
+has been played yet. **"Unavailable"** means the fetch failed, and the banner
+underneath carries the reason. An unavailable competition stays clickable,
+because clicking is how you retry.

@@ -20,6 +20,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
+from . import http
 from .competitions import Competition
 from .http import FetchError, get
 
@@ -282,21 +283,17 @@ def summarise_all(competitions, days: int = 10,
     """
     Summarise every competition at once.
 
-    Sequentially this is several seconds and the chooser is the first thing
-    anyone sees, so they run in parallel. A competition that fails maps to None
-    rather than taking the whole page down with it.
+    Run through `http.politely`: a small pool with a stagger between starts,
+    rather than six simultaneous requests. A competition that fails carries its
+    reason rather than taking the page down or going silently missing.
     """
-    from concurrent.futures import ThreadPoolExecutor
-
     def one(competition):
         try:
             return competition.key, summarise(competition, days=days, today=today)
         except Exception as exc:
             return competition.key, failed(competition, str(exc))
 
-    competitions = tuple(competitions)
-    with ThreadPoolExecutor(max_workers=len(competitions)) as pool:
-        return dict(pool.map(one, competitions))
+    return dict(http.politely(one, competitions))
 
 
 def board(season: Season, days: int = 10,

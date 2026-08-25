@@ -76,7 +76,11 @@ But WhoScored rate limits bursts, and a shared or datacentre IP gets throttled f
 
 WhoScored rate limits bursts, and it throttles **datacentre addresses far harder than home connections**. The same six-competition burst that returns 6/6 from a laptop can be refused almost entirely from a hosted Streamlit deploy, because the whole platform shares a small pool of egress IPs.
 
-Three things follow, and all three are implemented:
+Four things follow, and all four are implemented:
+
+- **The proxy reads Streamlit secrets as well as the environment.** Streamlit Cloud has no environment variables, so an env-var-only setting is unreachable exactly where it is most needed. Credentials in a proxy URL are never echoed back in status output or error messages.
+- **Requests are throttled, not fired at once.** Two at a time with a stagger between starts, via `http.politely`. Six simultaneous requests look like a scraper; the same six spread over a couple of seconds look like a browser, and the wall-clock difference on a page nobody is watching load is negligible. Tunable with `TRAZADO_PARALLEL` and `TRAZADO_STAGGER`.
+- **The schedule cache runs fifteen minutes, not three.** This is navigation metadata and it changes on the timescale of a matchday. A short TTL meant a hosted deploy spent its whole rate-limit budget re-fetching data that had not moved. Section 1 still governs match event data, which is never cached.
 
 - **Retries back off.** Exponential with jitter, on 403/429/5xx and transport failures, dropping the session each time so a poisoned connection cannot persist. A fixed short retry just produces a second refusal a moment later.
 - **A failed lookup must not read as an empty competition.** "Coming soon" is a claim about the football; "Unavailable" is a claim about us. Showing the first when the second is true is quietly wrong about every competition at once, which is exactly what a throttled deploy produces.
