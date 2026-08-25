@@ -1,0 +1,20 @@
+__pycache__/
+*.pyc
+.DS_Store
+.venv/
+
+# Crest cache: fetched on demand from WhoScored, never hand edited.
+static/clubs/
+
+# static/fonts is a copy of assets/fonts so Streamlit can serve it; both are
+# tracked, because without them every surface silently falls back.
+
+# assets/fonts is deliberately NOT ignored: without the .ttf files every
+# figure silently falls back to DejaVu Sans and the export cards go off-brand.
+
+# Fonts not currently in use. assets/fonts is the live one; this is just a
+# shelf, and shipping unused binaries in a repo is noise.
+assets/fonts-available/
+
+# Downloaded font archives — unpack into assets/fonts instead.
+*.zip

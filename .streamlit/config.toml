@@ -1,0 +1,19 @@
+[server]
+headless = true
+# Serves ./static at /app/static. Club crests repeat across fixture cards, so
+# embedding them as data URIs put half a megabyte of base64 into one markdown
+# payload and Streamlit dropped it. Served as files they cost one request each
+# and are cached by the browser.
+enableStaticServing = true
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+# Streamlit paints its own ground before our CSS lands; matching it to the
+# Vivid background stops a light flash on load.
+base = "dark"
+backgroundColor = "#12121A"
+secondaryBackgroundColor = "#1D1D2A"
+textColor = "#FFFFFF"
+primaryColor = "#00E0C6"
