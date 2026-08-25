@@ -20,12 +20,15 @@ Notation, enforced here rather than per chart:
 from __future__ import annotations
 
 import io
+import io as _io
 
 import matplotlib
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
+import numpy as _np
 from matplotlib.lines import Line2D
+from matplotlib.offsetbox import AnnotationBbox, OffsetImage
 from matplotlib.patches import Rectangle
 from mplsoccer import Pitch, VerticalPitch
 
@@ -415,6 +418,40 @@ def draw_aerial_breakdown(figure, rect, pieces, palette, scale=1.0):
 
 # ---------------------------------------------------------------------------
 # visual 12 — team comparison
+
+
+# Section 7: crests sit at 75% so they read as identity rather than compete
+# with the numbers beside them.
+CREST_ALPHA = 0.75
+
+# How much vertical room the crest band takes, in rows.
+CREST_ROWS = 0.9
+
+
+def _crest_pair(ids, home, away):
+    """
+    Both crests as image arrays, or None if either is missing.
+
+    Both or neither: one crest and one bare column reads as a rendering fault
+    rather than as a missing badge.
+    """
+    if not ids:
+        return None
+    from lib import badges
+    out = []
+    for team in (home, away):
+        data = badges.fetch(int(ids.get(team) or 0))
+        if not data:
+            return None
+        try:
+            from PIL import Image
+            out.append(_np.asarray(
+                Image.open(_io.BytesIO(data)).convert("RGBA")))
+        except Exception:
+            return None
+    return out
+
+
 # ---------------------------------------------------------------------------
 
 # Rows in reading order: the volume first, then what the volume actually
@@ -473,7 +510,8 @@ def comparison_rows(pieces, home, away):
     return out
 
 
-def draw_comparison(figure, rect, pieces, palette, home, away, scale=1.0):
+def draw_comparison(figure, rect, pieces, palette, home, away, scale=1.0,
+                    ids=None):
     """
     Both sides' set-piece work, row by row, counted.
 
@@ -492,7 +530,10 @@ def draw_comparison(figure, rect, pieces, palette, home, away, scale=1.0):
         return axis, []
 
     axis.set_xlim(0, 1)
-    axis.set_ylim(-0.6, len(rows) - 0.4)
+    # Headroom above the top row for the crests, and only when there are
+    # crests to put there.
+    crests = _crest_pair(ids, home, away)
+    axis.set_ylim(-0.6, len(rows) - 0.4 + (CREST_ROWS if crests else 0.0))
 
     colours = (palette["s1"], palette["s2"])
     height = 0.34
@@ -570,7 +611,19 @@ def draw_comparison(figure, rect, pieces, palette, home, away, scale=1.0):
                       fontsize=11.5 * scale, va="center", ha=align,
                       fontweight="bold")
 
-    handles = [
+    # A crest over each column says which side is which without a legend row,
+    # and without the feed's inconsistent abbreviations of a club name. The
+    # names come back only when a badge is missing, so a side is never
+    # unlabelled.
+    if crests:
+        top = len(rows) - 0.4 + 0.42
+        for image, x in zip(crests, (inner_l - span / 2, inner_r + span / 2)):
+            axis.add_artist(AnnotationBbox(
+                # Section 7's 75%, the same as every other crest on a card.
+                OffsetImage(image, zoom=0.34 * scale, alpha=CREST_ALPHA),
+                (x, top), frameon=False, box_alignment=(0.5, 0.5)))
+
+    handles = [] if crests else [
         Line2D([], [], marker="s", linestyle="none", markersize=8 * scale,
                markerfacecolor=colours[0], markeredgecolor=colours[0],
                label=home),
@@ -656,14 +709,16 @@ def aerial_zones(pieces, palette, title="Aerial Duels", subtitle=""):
 
 
 def comparison(pieces, palette, home, away, title="Team Comparison",
-               subtitle=""):
+               subtitle="", ids=None):
     rows = len(comparison_rows(pieces, home, away))
-    # Height follows the row count. A fixed frame either crushes ten rows or
-    # leaves half the card empty on a match with three.
-    figure = plt.figure(figsize=(6.6, 1.55 + 0.42 * rows), facecolor=palette["bg"])
-    top = 0.86 - 0.30 / (1.55 + 0.42 * rows)
+    # Height follows the row count, plus a band for the crests. A fixed frame
+    # either crushes ten rows or leaves half the card empty on a match with
+    # three.
+    tall = 1.55 + 0.42 * (rows + (CREST_ROWS if _crest_pair(ids, home, away) else 0))
+    figure = plt.figure(figsize=(6.6, tall), facecolor=palette["bg"])
+    top = 0.86 - 0.30 / tall
     _, handles = draw_comparison(figure, [0.045, 0.155, 0.91, top - 0.155],
-                                 pieces, palette, home, away)
+                                 pieces, palette, home, away, ids=ids)
     return _screen(figure, title,
                    subtitle or comparison_caption(pieces, home, away),
                    palette, handles, legend_y=0.015)

@@ -263,13 +263,18 @@ def card(match, pieces, *, visual: str = "deliveries", team: str | None = None,
         # a three-row match in a ten-row frame comes out as three fat slabs.
         # Hold the row height instead and let the block shrink upward.
         count = len(charts.comparison_rows(scoped, home, away))
+        # The crest band is part of the axis, so it has to be part of the
+        # height too -- otherwise the rows compress to make room for it and
+        # leave the slack sitting under the table instead.
+        if charts._crest_pair(ids, home, away):
+            count += charts.CREST_ROWS
         x, y, w, h = rect
         used = min(h, 0.056 * count)
         # Centred in the band, not anchored to its top: anchoring left a dead
         # strip above the legend on a match with few rows.
         _, handles = charts.draw_comparison(
             figure, [x, y + (h - used) / 2, w, used], scoped, palette,
-            home, away, scale=1.45)
+            home, away, scale=1.45, ids=ids)
     else:
         from lib.setpieces import match_goals
         _, handles = charts.draw_timeline(

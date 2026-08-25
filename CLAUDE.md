@@ -218,6 +218,8 @@ Origin markers make type readable at a glance: corner arc for corners, small squ
 
     Fraction rows — first contact, aerials, shots in the second phase — use the outline-is-attempted, fill-is-won encoding from the aerial breakdown, so the reader learns one vocabulary rather than one per chart.
 
+    **Crests head the two columns, not names.** Same reasoning as the export header: the feed abbreviates club names inconsistently and a long one pushes the layout around, while a crest says the same thing in a fixed box. They sit at section 7's 75%. The names come back in the legend only when a badge is missing, and it is both crests or neither — one crest against one bare column reads as a rendering fault rather than a missing badge. The crest band is counted as part of the chart's height, or the rows compress to make room and leave the slack under the table.
+
     **The label column is measured, not assumed.** A fixed gutter printed "Shots, 2nd Phase" straight through both bars. The chart now draws every label and every value invisibly, measures them against the rendered axis, and gives the bars whatever is left — which is what section 7 means by bands measured from the data.
 
     The caption leads with the row a reader would actually lead with, not the biggest gap: "Set-Pieces" is a sum dominated by goal kicks, so on one real match a 25-to-20 row beat a 4-to-1 shot count on raw difference while saying far less. Goals, then shots, then corners. When no row is decisive it states the split rather than claiming one, and it never says "evenly split" — a 1-0 match had been described that way.

@@ -344,7 +344,9 @@ def render(match, theme: str) -> None:
     if comparison_rows(pieces, home_team, away_team):
         st.markdown('<div class="tz-sec">Comparison</div>',
                     unsafe_allow_html=True)
-        st.image(to_png(comparison(pieces, palette, home_team, away_team)),
+        st.image(to_png(comparison(pieces, palette, home_team, away_team,
+                                   ids={home_team: home_id,
+                                        away_team: away_id})),
                  use_container_width=True)
 
     _export_panel(match, pieces, theme)
