@@ -71,6 +71,12 @@ VISUALS: dict[str, dict] = {
         "rect": [0.085, 0.220, 0.845, 0.505],
         "heading": "Dead Balls Against the Scoreline",
     },
+    "comparison": {
+        "label": "Comparison",
+        "team": False,
+        "rect": [0.075, 0.200, 0.850, 0.530],
+        "heading": "Team Comparison",
+    },
 }
 
 
@@ -218,6 +224,8 @@ def card(match, pieces, *, visual: str = "deliveries", team: str | None = None,
         caption = charts.chain_caption(scoped)
     elif visual == "timeline":
         caption = charts.timeline_caption(scoped, home, away)
+    elif visual == "comparison":
+        caption = charts.comparison_caption(scoped, home, away)
     else:
         caption = readout.headline(pieces, team)
     figure.text(0.075, 0.851, caption, color=palette["muted"], fontsize=14,
@@ -250,6 +258,18 @@ def card(match, pieces, *, visual: str = "deliveries", team: str | None = None,
     elif visual == "chains":
         _, handles = charts.draw_chains(figure, rect, scoped, palette,
                                         scale=1.25, columns=2)
+    elif visual == "comparison":
+        # Rows are as tall as the frame divided by however many there are, so
+        # a three-row match in a ten-row frame comes out as three fat slabs.
+        # Hold the row height instead and let the block shrink upward.
+        count = len(charts.comparison_rows(scoped, home, away))
+        x, y, w, h = rect
+        used = min(h, 0.056 * count)
+        # Centred in the band, not anchored to its top: anchoring left a dead
+        # strip above the legend on a match with few rows.
+        _, handles = charts.draw_comparison(
+            figure, [x, y + (h - used) / 2, w, used], scoped, palette,
+            home, away, scale=1.45)
     else:
         from lib.setpieces import match_goals
         _, handles = charts.draw_timeline(

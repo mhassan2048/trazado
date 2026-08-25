@@ -14,6 +14,7 @@ from lib import badges, readout, setpieces
 from lib.setpieces import CORNER, FREEKICK, GOAL_KICK, THROW_IN, PENALTY
 
 from .charts import (aerial_zones, chain_caption, chainable, chains,
+                     comparison, comparison_rows,
                      delivery_map, goal_kick_caption as charts_caption,
                      goal_kicks, timeline, to_png)
 from .export import VISUALS, card
@@ -252,6 +253,15 @@ def render(match, theme: str) -> None:
                 title=f"{team} — Goal Kicks",
                 subtitle=charts_caption(mine, team))),
                 use_container_width=True)
+
+    # Section 3.12, and it belongs above the timeline: it is the summary the
+    # per-team maps above have been building toward, read in one pass.
+    home_team, away_team = match.meta["home_team"], match.meta["away_team"]
+    if comparison_rows(pieces, home_team, away_team):
+        st.markdown('<div class="tz-sec">Comparison</div>',
+                    unsafe_allow_html=True)
+        st.image(to_png(comparison(pieces, palette, home_team, away_team)),
+                 use_container_width=True)
 
     _export_panel(match, pieces, theme)
 

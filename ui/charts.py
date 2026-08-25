@@ -414,6 +414,213 @@ def draw_aerial_breakdown(figure, rect, pieces, palette, scale=1.0):
 
 
 # ---------------------------------------------------------------------------
+# visual 12 — team comparison
+# ---------------------------------------------------------------------------
+
+# Rows in reading order: the volume first, then what the volume actually
+# produced. Ending on goals means the eye finishes on the outcome rather than
+# on a throw-in count.
+#
+# Two kinds of row. A count row is one number a side. A fraction row is a
+# numerator over a denominator, drawn the way every duel in this app is drawn:
+# outline for what was attempted, fill for what was won. That keeps one
+# vocabulary across the map, the breakdown and this table.
+_ROWS = [
+    ("Set-Pieces",      "total",      None),
+    ("Corners",         CORNER,       "kind"),
+    ("Free Kicks",      FREEKICK,     "kind"),
+    ("Long Throws",     THROW_IN,     "kind"),
+    ("Goal Kicks",      GOAL_KICK,    "kind"),
+    ("First Contact",   "contact",    "fraction"),
+    ("Aerials Won",     "aerial",     "fraction"),
+    ("Shots",           "shots",      None),
+    ("Shots, 2nd Phase", "second",    "fraction"),
+    ("Goals",           "goals",      None),
+]
+
+
+def _row_values(stat, key, mode):
+    """(numerator, denominator) for one side of one row; denominator None
+    for a plain count."""
+    if mode == "kind":
+        return stat["by_kind"].get(key, 0), None
+    if mode == "fraction":
+        if key == "contact":
+            return stat["contact_won"], stat["contact_total"]
+        if key == "aerial":
+            return stat["aerial_won"], stat["aerial_total"]
+        return stat["second"], stat["shots"]
+    return stat[key], None
+
+
+def comparison_rows(pieces, home, away):
+    """The rows this match actually supports, in order."""
+    from lib import readout
+    left, right = readout.summary(pieces, home), readout.summary(pieces, away)
+    out = []
+    for label, key, mode in _ROWS:
+        h = _row_values(left, key, mode)
+        a = _row_values(right, key, mode)
+        # Section 1: never render an empty panel, and never an empty row
+        # either. A match with no long throws should not carry a Long Throws
+        # line reading 0 against 0.
+        if mode == "fraction":
+            if not (h[1] or a[1]):
+                continue
+        elif not (h[0] or a[0]):
+            continue
+        out.append((label, mode, h, a))
+    return out
+
+
+def draw_comparison(figure, rect, pieces, palette, home, away, scale=1.0):
+    """
+    Both sides' set-piece work, row by row, counted.
+
+    Bars run outward from a central label column. Each row is scaled to its
+    own larger side, because a row measuring corners and a row measuring goals
+    share no unit and comparing their lengths would mean nothing. The raw
+    number sits at the end of every bar, so length is never the only thing
+    carrying the value -- which is what keeps a 3-against-2 row from reading
+    like a rout.
+    """
+    rows = comparison_rows(pieces, home, away)
+    axis = figure.add_axes(rect)
+    axis.set_facecolor("none")
+    axis.axis("off")
+    if not rows:
+        return axis, []
+
+    axis.set_xlim(0, 1)
+    axis.set_ylim(-0.6, len(rows) - 0.4)
+
+    colours = (palette["s1"], palette["s2"])
+    height = 0.34
+
+    # Draw the labels and the numbers first, then measure what they actually
+    # occupy and give the bars whatever is left. Section 7: bands are measured
+    # from the data, never taken as a fraction of the axis with text dropped
+    # wherever it lands -- which is how "Shots, 2nd Phase" ended up printed
+    # straight through both bars.
+    def cell(value, mode):
+        numerator, denominator = value
+        return f"{numerator}/{denominator}" if mode == "fraction" else str(numerator)
+
+    probes = [axis.text(0.5, 0, label, fontsize=10.2 * scale, alpha=0)
+              for label, _, _, _ in rows]
+    probes += [axis.text(0.5, 0, cell(v, mode), fontsize=11.5 * scale,
+                         fontweight="bold", alpha=0)
+               for _, mode, h, a in rows for v in (h, a)]
+    figure.canvas.draw()
+    renderer = figure.canvas.get_renderer()
+    axis_px = axis.get_window_extent(renderer).width
+    widths = [t.get_window_extent(renderer).width / axis_px for t in probes]
+    label_w = max(widths[:len(rows)])
+    digit_w = max(widths[len(rows):])
+    for t in probes:
+        t.remove()
+
+    # Half the widest label each side of centre, plus breathing room; the
+    # numbers get their own reserved column at the outer end. Capped so a
+    # freak label cannot squeeze the bars out of existence.
+    gutter = min(label_w / 2 + 0.028, 0.34)
+    digits = min(digit_w + 0.014, 0.14)
+    inner_l, inner_r = 0.5 - gutter, 0.5 + gutter
+    span = max(inner_l - digits, 0.02)
+
+    for index, (label, mode, h, a) in enumerate(rows):
+        y = len(rows) - 1 - index
+        base = max(h[1] or h[0], a[1] or a[0]) or 1
+
+        axis.text(0.5, y, label, color=palette["muted"],
+                  fontsize=10.2 * scale, va="center", ha="center")
+
+        for value, side, colour in ((h, "home", colours[0]),
+                                    (a, "away", colours[1])):
+            numerator, denominator = value
+            outer = denominator if denominator is not None else numerator
+            length = span * outer / base
+            sign = -1 if side == "home" else 1
+            edge = inner_l if side == "home" else inner_r
+            x = edge - length if side == "home" else edge
+            text_x = edge - length - 0.012 if side == "home" else edge + length + 0.012
+            align = "right" if side == "home" else "left"
+
+            if denominator is None:
+                if numerator:
+                    axis.add_patch(Rectangle((x, y - height / 2), length, height,
+                                             facecolor=colour, lw=0))
+                shown = str(numerator)
+            else:
+                # Outline is every attempt, fill is the ones won -- the same
+                # reading as a filled versus hollow marker anywhere else.
+                if outer:
+                    axis.add_patch(Rectangle((x, y - height / 2), length, height,
+                                             facecolor="none", edgecolor=colour,
+                                             lw=1.15 * scale))
+                if numerator:
+                    won = span * numerator / base
+                    wx = edge - won if side == "home" else edge
+                    axis.add_patch(Rectangle((wx, y - height / 2), won, height,
+                                             facecolor=colour, lw=0))
+                shown = f"{numerator}/{denominator}"
+
+            axis.text(text_x, y, shown,
+                      color=palette["ink"] if numerator else palette["faint"],
+                      fontsize=11.5 * scale, va="center", ha=align,
+                      fontweight="bold")
+
+    handles = [
+        Line2D([], [], marker="s", linestyle="none", markersize=8 * scale,
+               markerfacecolor=colours[0], markeredgecolor=colours[0],
+               label=home),
+        Line2D([], [], marker="s", linestyle="none", markersize=8 * scale,
+               markerfacecolor=colours[1], markeredgecolor=colours[1],
+               label=away),
+    ]
+    # The hollow bar is a marker like any other, and an unlabelled symbol is
+    # worse than no symbol.
+    if any(mode == "fraction" for _, mode, _, _ in rows):
+        handles.append(
+            Line2D([], [], marker="s", linestyle="none", markersize=8 * scale,
+                   markerfacecolor="none", markeredgecolor=palette["muted"],
+                   label="attempted"))
+    return axis, handles
+
+
+# What a reader would actually lead with, in order. Not simply the biggest
+# gap: "Set-Pieces" is a sum dominated by goal kicks, so a row reading 25 to 20
+# beats a 4-to-1 shot count on raw difference while saying far less about the
+# match.
+_CAPTION_ORDER = [("Goals", 1), ("Shots", 2), ("Corners", 2),
+                  ("Free Kicks", 2), ("Goal Kicks", 3), ("Set-Pieces", 4)]
+
+
+def comparison_caption(pieces, home, away):
+    """The row worth leading with, named in counts."""
+    counts = {label: (h[0], a[0])
+              for label, mode, h, a in comparison_rows(pieces, home, away)
+              if mode != "fraction"}
+    for label, least in _CAPTION_ORDER:
+        pair = counts.get(label)
+        if not pair or abs(pair[0] - pair[1]) < least:
+            continue
+        left, right = pair
+        leader = home if left > right else away
+        return (f"{leader} had {max(left, right)} {label.lower()} "
+                f"to {min(left, right)}.")
+    # No row is decisive. Say what the match had rather than reaching for a
+    # comparison it does not support -- and never claim "evenly split", which
+    # a 1-0 split would have been described as.
+    total = len(pieces)
+    ball = "dead ball" if total == 1 else "dead balls"
+    pair = counts.get("Set-Pieces")
+    if pair and (pair[0] or pair[1]):
+        return f"{total} {ball}, {pair[0]} to {pair[1]}."
+    return f"{total} {ball}."
+
+
+# ---------------------------------------------------------------------------
 # on-screen wrappers: same drawing code, plainer frame, no branding block
 # ---------------------------------------------------------------------------
 
@@ -446,6 +653,20 @@ def aerial_zones(pieces, palette, title="Aerial Duels", subtitle=""):
     draw_aerial_breakdown(figure, [0.06, 0.10, 0.88, 0.17], pieces, palette, 0.95)
     return _screen(figure, title, subtitle or aerial_caption(pieces),
                    palette, handles, legend_y=0.285)
+
+
+def comparison(pieces, palette, home, away, title="Team Comparison",
+               subtitle=""):
+    rows = len(comparison_rows(pieces, home, away))
+    # Height follows the row count. A fixed frame either crushes ten rows or
+    # leaves half the card empty on a match with three.
+    figure = plt.figure(figsize=(6.6, 1.55 + 0.42 * rows), facecolor=palette["bg"])
+    top = 0.86 - 0.30 / (1.55 + 0.42 * rows)
+    _, handles = draw_comparison(figure, [0.045, 0.155, 0.91, top - 0.155],
+                                 pieces, palette, home, away)
+    return _screen(figure, title,
+                   subtitle or comparison_caption(pieces, home, away),
+                   palette, handles, legend_y=0.015)
 
 
 def timeline(pieces, palette, home, away, goals=None, max_minute=95):

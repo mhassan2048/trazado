@@ -212,7 +212,15 @@ Origin markers make type readable at a glance: corner arc for corners, small squ
 9. Game state timeline. Every dead ball against the scoreline, with type markers. The scoreline is the **real** one, stepped on every goal in the match — stepping it on set piece goals alone draws a flat line through a 4-2 and misrepresents the game state every restart was taken in, which is the whole point of the chart. Goals carry the new score and the scorer; the ones that came from a set piece are ringed in the accent. Carries a half-time divider, a shot ring on the restarts that produced one, and each side's running count.
 10. Fouls won in the final third. Locations and names, wide versus central distinguished.
 11. Defensive panel. Clearances, keeper claims and punches, first contact fractions by zone.
-12. Team comparison. Raw counts across the metrics above.
+12. Team comparison. Raw counts across the metrics above, as opposed bars running outward from a central label column. **Built.**
+
+    Each row is scaled to its own larger side, and the raw number is printed at the end of every bar. Rows measuring corners and rows measuring goals share no unit, so a single scale across the table would make a 1-goal row an invisible nub next to a 14-goal-kick row; per-row scaling with the number always printed keeps length honest within a row and never asks length to carry the value alone. That is also what stops a 3-against-2 row reading as a rout.
+
+    Fraction rows — first contact, aerials, shots in the second phase — use the outline-is-attempted, fill-is-won encoding from the aerial breakdown, so the reader learns one vocabulary rather than one per chart.
+
+    **The label column is measured, not assumed.** A fixed gutter printed "Shots, 2nd Phase" straight through both bars. The chart now draws every label and every value invisibly, measures them against the rendered axis, and gives the bars whatever is left — which is what section 7 means by bands measured from the data.
+
+    The caption leads with the row a reader would actually lead with, not the biggest gap: "Set-Pieces" is a sum dominated by goal kicks, so on one real match a 25-to-20 row beat a 4-to-1 shot count on raw difference while saying far less. Goals, then shots, then corners. When no row is decisive it states the split rather than claiming one, and it never says "evenly split" — a 1-0 match had been described that way.
 13a. Goal kick map. Full pitch, always left to right. Goal kicks cannot share the delivery map — that map is the attacking half and these start on the other goal line. Landing point filled when the kicking side got there, hollow when they did not, ringed when contested in the air. Counted and drawn because a quarter of them are contested within three events, which is the same first-contact question the rest of the app asks.
 13. Set piece ledger. Table of every dead ball: minute, team, type, taker, target zone, first contact, outcome. Backbone for the copyable text report.
 
