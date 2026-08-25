@@ -507,6 +507,10 @@ pre code span { color: var(--ink) !important; }
   font-family: var(--font-mono); letter-spacing: 0.3px;
 }
 .tz-by { color: var(--muted) !important; }
+.tz-stamp {
+  color: var(--faint); font-size: 10.5px; letter-spacing: 0.3px;
+  margin: 14px 0 -6px; font-family: var(--font-mono);
+}
 .tz-by:hover { color: var(--accent) !important; }
 .tz-error {
   color: var(--hot); font-size: 12px; margin-top: 10px;

@@ -14,7 +14,7 @@ import streamlit as st
 st.set_page_config(page_title="Trazado", page_icon="assets/logo.svg",
                    layout="centered", initial_sidebar_state="collapsed")
 
-from lib import schedule                       # noqa: E402
+from lib import schedule, snapshot             # noqa: E402
 from lib.competitions import COMPETITIONS      # noqa: E402
 from lib.competitions import get as competition_by_key      # noqa: E402
 from lib import whoscored                                  # noqa: E402
@@ -22,15 +22,34 @@ from ui import analysis, competitions, matches, theme as theming  # noqa: E402
 from ui.chrome import header, link             # noqa: E402
 
 
-# Fifteen minutes, not three. This is navigation metadata -- which season is
-# live, which fixtures exist -- and it changes on the timescale of a matchday,
-# not a page load. A short TTL meant a hosted deploy re-fetched every few
-# minutes and spent its whole rate-limit budget on data that had not moved.
-# Section 1 governs match event data, which is still never cached.
+# The schedule comes from a committed snapshot, refreshed by a scheduled job
+# rather than by whoever happens to load the page. The chooser and the fixture
+# list then cost no network at all, which is the whole eighteen-request burst
+# that a shared hosting address gets refused for.
+#
+# Live fetching stays as the fallback: if the snapshot is missing or older than
+# a few hours, try the network, and fall back to the stale file if that fails
+# too. A broken scheduled job degrades to the old behaviour rather than to an
+# empty app. Section 1 governs match event data, which is never cached.
 @st.cache_data(ttl=900, show_spinner="Checking what has been played…")
 def summaries():
     """Which season is live, and how many matches are openable right now."""
-    return schedule.summarise_all(COMPETITIONS)
+    data = snapshot.read()
+    if snapshot.is_fresh(data):
+        return snapshot.to_summaries(data)
+    try:
+        return schedule.summarise_all(COMPETITIONS)
+    except Exception:
+        return snapshot.to_summaries(data) if data else {}
+
+
+def schedule_note() -> str:
+    """When the fixtures were last refreshed, or "" when fetched live."""
+    data = snapshot.read()
+    if not snapshot.is_fresh(data):
+        return ""
+    stamp = snapshot.fetched_at(data)
+    return stamp.strftime("Fixtures as of %d %b, %H:%M UTC") if stamp else ""
 
 
 def current_theme() -> str:
@@ -102,7 +121,7 @@ def main() -> None:
         live = summaries()
     except Exception:
         live = {}  # The chooser still renders; cards show a dash.
-    competitions.render(active, summaries=live)
+    competitions.render(active, summaries=live, note=schedule_note())
 
 
 if __name__ == "__main__":

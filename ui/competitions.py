@@ -91,7 +91,8 @@ def _season_label(summaries: dict) -> str:
     return _short_season(Counter(names).most_common(1)[0][0])
 
 
-def render(theme: str, summaries: dict | None = None) -> None:
+def render(theme: str, summaries: dict | None = None,
+           note: str = "") -> None:
     summaries = summaries or {}
     st.markdown(header(theme), unsafe_allow_html=True)
     season = _season_label(summaries)
@@ -139,6 +140,11 @@ def render(theme: str, summaries: dict | None = None) -> None:
         elif match_id is not None and go:
             st.query_params.update({"match": str(match_id), "theme": theme})
             st.rerun()
+
+    if note:
+        # Say when, rather than implying now. A cached schedule shown as
+        # live would be exactly the overstatement this app avoids.
+        st.markdown(f'<p class="tz-stamp">{note}</p>', unsafe_allow_html=True)
 
     st.markdown('<p class="tz-note">by '
                 '<a class="tz-by" href="https://x.com/mhassanfootball" '

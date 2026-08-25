@@ -108,7 +108,10 @@ def render(competition, summary, theme: str, day: str | None = None) -> None:
         return
 
     try:
-        fixtures = schedule.board(summary.season)
+        # The snapshot already carries the board; only fall back to the
+        # network when it does not.
+        fixtures = (list(summary.season.fixtures) if summary.season.fixtures
+                    else schedule.board(summary.season))
     except Exception:
         st.markdown('<p class="tz-empty">Could not load fixtures just now. '
                     'Reload in a moment.</p>', unsafe_allow_html=True)

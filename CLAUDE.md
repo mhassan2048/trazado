@@ -56,9 +56,25 @@ Fixture status `6` means finished. Anything else is unplayed, in progress or aba
 
 **Trap: the embedded fixtures are not the played ones.** They are whichever round WhoScored is currently featuring, and the moment a round completes they flip to the next one. Counting them caught this live — the Premier League showed ten played matches in the morning and zero a few hours later, while ten matches had in fact been played that week. Never count the embedded list. Ask the date window, which spans the month boundary and hits the month endpoint.
 
-### On caching
+### On caching, and the schedule snapshot
 
-Section 1 governs match event data: that is never held between visits. The schedule layer — which season is live, which fixtures exist — is navigation metadata and is held for three minutes. Without that, clicking a theme would cost six network requests. The analysis itself is always fetched fresh, which is the promise that actually matters.
+Section 1 governs match event data: that is never held between visits. The schedule layer — which season is live, which fixtures exist — is navigation metadata, and it is not fetched on page load at all.
+
+**The schedule is precomputed out of band.** A GitHub Action runs `scripts/fetch_schedule.py` and commits `data/schedule.json`; the app reads that file. The chooser and the fixture list then cost zero network requests and render in about a millisecond.
+
+This was forced by a real failure, not chosen for speed. The hosted deploy loaded only half the leagues while the same code loaded all six locally. The cause is the request pattern rather than the code: opening the chooser fans out to six competitions at once, and a shared datacentre address gets that burst refused where a home connection does not. Nothing done inside a page load fixes this — the page load is the problem. Caching only froze the failure for fifteen minutes; the circuit breaker made it worse, converting "two refused" into "everything after runs with no retries", which is exactly the half-empty chooser that was reported.
+
+Moving the fetch off the page load fixes it properly. The Action is not racing a user's page load, so it can retry patiently over minutes, and a run that fails entirely keeps the previous snapshot rather than showing an empty app.
+
+Three layers, in order: a fresh snapshot; a live fetch if the snapshot is missing or older than `TRAZADO_SNAPSHOT_STALE_HOURS` (default 6); the stale snapshot if that fetch fails too. So a broken Action degrades to the old behaviour, and a broken Action *plus* a refused fetch still renders yesterday's fixtures. All three paths are exercised, not assumed.
+
+**Say when, not now.** The chooser carries a "Fixtures as of 25 Aug, 20:07 UTC" line whenever it is serving the snapshot, and drops it when the data came live. An app this careful about not overstating what a match shows cannot present a six-hour-old fixture list as current.
+
+**The cron runs Thursday to Monday.** That is when the big five and the Champions League actually play. Midweek gets a couple of evening runs to catch cup rounds and rearranged fixtures, rather than nothing. Half-hourly during those windows, so a score is never more than thirty minutes behind.
+
+The fetch path imports no pandas, no matplotlib, no Streamlit — only `curl_cffi` beyond the standard library — so the Action installs one package instead of the app's full requirements.
+
+**Open risk, and it can only be answered by running it.** GitHub runners use Azure datacentre addresses, which is the same category of address the Streamlit deploy is being refused from. If WhoScored refuses those too, the Action fails every run and the snapshot goes stale — at which point the app falls back to live fetching and behaves exactly as it does today, which is why this is worth shipping before the answer is known. If it does turn out to be blocked, the next move is a proxy on the Action or running the fetch somewhere with a residential address.
 
 ### Proxy
 
