@@ -72,6 +72,18 @@ Direct is right for the common case. The Zauberpass **matchday** scraper this ap
 
 But WhoScored rate limits bursts, and a shared or datacentre IP gets throttled far harder than a home connection. `lib/http.py` is the only place a session is built, so the proxy is set in one function and every caller inherits it. The 403 message names the env var when no proxy is set.
 
+### Hosted deploys get throttled
+
+WhoScored rate limits bursts, and it throttles **datacentre addresses far harder than home connections**. The same six-competition burst that returns 6/6 from a laptop can be refused almost entirely from a hosted Streamlit deploy, because the whole platform shares a small pool of egress IPs.
+
+Three things follow, and all three are implemented:
+
+- **Retries back off.** Exponential with jitter, on 403/429/5xx and transport failures, dropping the session each time so a poisoned connection cannot persist. A fixed short retry just produces a second refusal a moment later.
+- **A failed lookup must not read as an empty competition.** "Coming soon" is a claim about the football; "Unavailable" is a claim about us. Showing the first when the second is true is quietly wrong about every competition at once, which is exactly what a throttled deploy produces.
+- **An unreachable competition stays clickable.** We cannot assert it is empty, and clicking is how you retry.
+
+When something does fail the chooser says so once, with the reason, rather than leaving a wall of dashes to be interpreted.
+
 ### Why our own scraper
 
 The Zauberpass scraper builds the full qualifier map and then keeps a whitelist of about forty booleans. That discards `ThrowIn`, `GoalKick`, `IndirectFreekickTaken`, `Length`, `Angle`, every shot situation tag and the whole goalkeeper vocabulary. Throw-ins become undetectable, which removes a feature outright.

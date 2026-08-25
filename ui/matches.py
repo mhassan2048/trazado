@@ -94,9 +94,13 @@ def render(competition, summary, theme: str, day: str | None = None) -> None:
         f'<div class="tz-season">{season_name}</div>',
         unsafe_allow_html=True)
 
-    if summary is None:
-        st.markdown('<p class="tz-empty">Could not reach WhoScored for this '
-                    'competition. Try again in a moment.</p>', unsafe_allow_html=True)
+    if summary is None or not summary.ok:
+        why = (summary.error if summary is not None and summary.error else "")
+        st.markdown(
+            '<p class="tz-empty">Could not reach WhoScored for this '
+            'competition. Reload to try again.'
+            + (f'<span class="tz-why">{why}</span>' if why else "")
+            + '</p>', unsafe_allow_html=True)
         return
     if not summary.started:
         st.markdown('<p class="tz-empty">This competition has not started. '

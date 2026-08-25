@@ -209,6 +209,7 @@ a.tz-card:hover { border-color: var(--accent); transform: translateY(-2px); }
 }
 .tz-count { color: var(--muted); font-size: 11px; margin-top: 15px; }
 .tz-count--unknown { color: var(--faint); }
+.tz-count--warn { color: var(--warn); }
 
 /* --- divider before the direct lookup --- */
 .tz-or { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
@@ -357,6 +358,18 @@ a.tz-fix:hover { border-color: var(--accent); transform: translateY(-1px); }
 }
 .tz-stat-l {
   color: var(--muted); font-size: 10px; letter-spacing: 0.3px; margin-top: 3px;
+}
+
+/* Shown only when a fetch failed, so the reader is never left guessing
+   whether a competition is empty or simply unreachable. */
+.tz-alert {
+  border: 1px solid var(--warn); border-left-width: 3px;
+  border-radius: 9px; padding: 10px 13px; margin: -14px 0 22px;
+  color: var(--muted); font-size: 11.5px; line-height: 1.6;
+}
+.tz-alert b { color: var(--ink); font-weight: 600; }
+.tz-why {
+  display: block; color: var(--faint); font-size: 11px; margin-top: 6px;
 }
 
 /* --- glossary, collapsed by default --- */

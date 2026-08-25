@@ -233,17 +233,33 @@ def recent(season: Season, days: int = 10, today: datetime | None = None) -> lis
 
 @dataclass(frozen=True)
 class Summary:
-    """What the competition chooser needs to draw one card."""
-    season: Season
-    recent: tuple[Fixture, ...]
+    """
+    What the competition chooser needs to draw one card.
+
+    `error` carries why a lookup failed, when it did. Swallowing the reason
+    into a bare None meant a hosted deploy could show "Coming soon" for a
+    competition it simply could not reach -- a claim about the football rather
+    than about the request.
+    """
+    season: Season | None = None
+    recent: tuple[Fixture, ...] = ()
+    error: str = ""
+
+    @property
+    def ok(self) -> bool:
+        return self.season is not None and not self.error
 
     @property
     def started(self) -> bool:
-        return self.season.started
+        return bool(self.season and self.season.started)
 
     @property
     def count(self) -> int:
         return len(self.recent)
+
+
+def failed(competition: Competition, reason: str) -> "Summary":
+    return Summary(season=None, recent=(), error=reason)
 
 
 def summarise(competition: Competition, days: int = 10,
@@ -262,7 +278,7 @@ def summarise(competition: Competition, days: int = 10,
 
 
 def summarise_all(competitions, days: int = 10,
-                  today: datetime | None = None) -> dict[str, "Summary | None"]:
+                  today: datetime | None = None) -> dict[str, "Summary"]:
     """
     Summarise every competition at once.
 
@@ -275,8 +291,8 @@ def summarise_all(competitions, days: int = 10,
     def one(competition):
         try:
             return competition.key, summarise(competition, days=days, today=today)
-        except Exception:
-            return competition.key, None
+        except Exception as exc:
+            return competition.key, failed(competition, str(exc))
 
     competitions = tuple(competitions)
     with ThreadPoolExecutor(max_workers=len(competitions)) as pool:

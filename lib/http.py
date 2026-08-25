@@ -10,6 +10,7 @@ make the competition chooser unusably slow.
 from __future__ import annotations
 
 import os
+import random
 import threading
 import time
 
@@ -78,29 +79,45 @@ def reset() -> None:
 
 
 def get(url: str, *, referer: str | None = None, timeout: int = 30,
-        retries: int = 1) -> str:
+        retries: int = 3) -> str:
     """
-    Fetch a page, rebuilding the session once if WhoScored refuses.
+    Fetch a page, backing off and rebuilding the session when refused.
 
     A 403 poisons the session: every later call on the same connection is
-    refused too, so without this the app stays broken until the process
-    restarts. Dropping it forces a new TLS handshake and new cookies.
+    refused too, so the session is dropped and rebuilt, forcing a new TLS
+    handshake and new cookies.
+
+    Backoff is exponential with jitter. On a home connection one retry is
+    plenty; from a datacentre address -- which is what a hosted deploy has --
+    WhoScored throttles far harder, and a fixed short retry just produces a
+    second refusal a moment later.
     """
     headers = {"Referer": referer} if referer else {}
+    last = ""
     for attempt in range(retries + 1):
-        response = session().get(url, timeout=timeout, headers=headers)
-        if response.status_code == 200:
+        try:
+            response = session().get(url, timeout=timeout, headers=headers)
+            status = response.status_code
+        except Exception as exc:                      # transport-level failure
+            status, last = None, f"{type(exc).__name__}: {exc}"
+            response = None
+
+        if status == 200:
             return response.text
-        if response.status_code == 403 and attempt < retries:
+        if status is not None:
+            last = f"status {status}"
+
+        retryable = status in (403, 429, 500, 502, 503, 504) or status is None
+        if retryable and attempt < retries:
             reset()
-            time.sleep(2.0)
+            time.sleep(min(8.0, 1.5 * (2 ** attempt)) + random.uniform(0, 0.75))
             continue
-        if response.status_code == 403:
-            hint = ("" if proxy() else
-                    f" If this keeps happening, route through a proxy: "
-                    f"export {PROXY_ENV}=socks5://127.0.0.1:9050")
-            raise FetchError(
-                "WhoScored refused the request (403). It rate limits bursts; "
-                f"wait a moment and try again.{hint}")
-        raise FetchError(f"WhoScored returned status {response.status_code}.")
-    raise FetchError("WhoScored refused the request (403).")
+        break
+
+    hint = ""
+    if "403" in last or "429" in last:
+        hint = (" WhoScored rate limits bursts and throttles datacentre "
+                "addresses hard.")
+        if not proxy():
+            hint += f" Try routing through a proxy: {PROXY_ENV}=socks5://host:port"
+    raise FetchError(f"WhoScored request failed ({last}).{hint}")

@@ -16,14 +16,17 @@ def _meta(summary) -> str:
     """
     The line under the league name.
 
-    Three states. Either there are matches to open, or there are not, or we
-    could not find out. A competition with no published stage and one whose
-    window happens to be empty are the same thing to a reader -- nothing to
-    click yet -- so they say the same thing. A failed lookup shows a dash
-    rather than a zero, because zero would be a claim we cannot make.
+    Three states, and the difference between two of them matters.
+
+    "Coming soon" is a claim about the football: nothing has been played yet.
+    "Unavailable" is a claim about us: we could not reach WhoScored. A hosted
+    deploy on a datacentre address gets throttled far harder than a laptop
+    does, and showing "Coming soon" there would be quietly wrong about every
+    competition at once.
     """
-    if summary is None:
-        return '<div class="tz-count tz-count--unknown">&mdash;</div>'
+    if summary is None or not summary.ok:
+        return ('<div class="tz-count tz-count--warn" '
+                'title="Could not reach WhoScored">Unavailable</div>')
     if not summary.started or not summary.count:
         return '<div class="tz-count tz-count--unknown">Coming soon</div>'
     return f'<div class="tz-count">{summary.count} matches</div>'
@@ -43,7 +46,10 @@ def _card(comp, summary, theme: str) -> str:
              f'<div class="tz-name">{comp.name}</div>'
              f'</div>{_meta(summary)}')
 
-    empty = summary is not None and (not summary.started or not summary.count)
+    # Unreachable stays clickable: we cannot claim it is empty, and clicking
+    # is how you retry.
+    empty = (summary is not None and summary.ok
+             and (not summary.started or not summary.count))
     if empty:
         return f'<div class="tz-card tz-card--off">{inner}</div>'
 
@@ -97,6 +103,19 @@ def render(theme: str, summaries: dict | None = None) -> None:
 
     cards = "".join(_card(c, summaries.get(c.key), theme) for c in COMPETITIONS)
     st.markdown(f'<div class="tz-grid">{cards}</div>', unsafe_allow_html=True)
+
+    # If anything failed, say so once with the reason. On a hosted deploy this
+    # is the difference between "the season has not started" and "our address
+    # is being throttled", which look identical from the cards alone.
+    broken = {c.name: summaries[c.key].error
+              for c in COMPETITIONS
+              if summaries.get(c.key) is not None and not summaries[c.key].ok}
+    if broken:
+        reason = next(iter(broken.values()), "")
+        st.markdown(
+            f'<div class="tz-alert"><b>{len(broken)} of {len(COMPETITIONS)} '
+            f'competitions could not be loaded.</b> {reason}</div>',
+            unsafe_allow_html=True)
 
     st.markdown(
         '<div class="tz-or"><i></i><span>Or Go Straight To A Match</span><i></i></div>',
