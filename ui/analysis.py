@@ -85,6 +85,90 @@ def _zone(piece) -> str:
     return piece.zone
 
 
+KIND_NAME = {CORNER: "Corner", FREEKICK: "Free Kick", THROW_IN: "Throw-In",
+             PENALTY: "Penalty", GOAL_KICK: "Goal Kick"}
+
+
+def _ledger_key(pieces) -> str:
+    """
+    What the marks in the ledger mean.
+
+    Built from the match, not from a fixed list: a key offering a Long Throw
+    badge to a match with no long throws is describing a different game. Every
+    item reuses the row classes rather than restating the styling, so the key
+    and the table cannot drift apart.
+
+    It sits above the table. A key below forty-five rows is a key you reach
+    after you needed it.
+    """
+    groups = []
+
+    kinds = [k for k in (CORNER, FREEKICK, THROW_IN, GOAL_KICK, PENALTY)
+             if any(p.kind == k for p in pieces)]
+    if kinds:
+        items = "".join(
+            f'<span class="tz-key-item">'
+            f'<span class="tz-badge tz-badge--{k}">{BADGE.get(k, "??")}</span>'
+            f'{KIND_NAME[k]}</span>' for k in kinds)
+        groups.append(("Type", items))
+
+    deliveries = [p for p in pieces if p.is_delivery]
+    if deliveries:
+        rules = []
+        if any(p.complete for p in deliveries):
+            rules.append(("tz-l-solid", "Found a Teammate"))
+        if any(not p.complete for p in deliveries):
+            rules.append(("tz-l-dash", "Cleared"))
+        rule_html = lambda pairs: "".join(
+            f'<span class="tz-key-item">'
+            f'<span class="tz-l-line tz-key-rule"><i class="{cls}"></i></span>'
+            f'{label}</span>' for cls, label in pairs)
+        groups.append(("Delivery", rule_html(rules)))
+        # Style and colour are independent channels here: the rule says whether
+        # the ball was found, the accent says whether a shot followed, and a
+        # cleared delivery that still produced a shot is drawn dashed AND in
+        # accent. Listing the accent inside the Delivery group implied it was a
+        # third line style, so it gets named for the channel it actually is.
+        if any(p.led_to_shot for p in pieces):
+            groups.append(("Accent", rule_html(
+                [("tz-l-solid tz-l-hot", "Led to a Shot, Either Rule")])))
+
+        contacts = [p.contact for p in deliveries]
+        dots = []
+        if any(c and c.attacking for c in contacts):
+            dots.append(("tz-dot--won", "Won"))
+        if any(c and not c.attacking for c in contacts):
+            dots.append(("tz-dot--lost", "Lost"))
+        if any(c is None for c in contacts):
+            dots.append(("tz-dot--none", "No Contact"))
+        if dots:
+            groups.append(("First Contact", "".join(
+                f'<span class="tz-key-item">'
+                f'<span class="tz-dot {cls}"></span>{label}</span>'
+                for cls, label in dots)))
+
+    shots = [s for p in pieces for s in p.shots]
+    if shots:
+        items = ['<span class="tz-key-item"><span class="tz-out tz-out--shot">'
+                 '1st</span>Off the Delivery</span>']
+        if any(s.phase == setpieces.SECOND_PHASE for s in shots):
+            items.append('<span class="tz-key-item">'
+                         '<span class="tz-out tz-out--shot">2nd</span>'
+                         'After the First Contact</span>')
+        if any(p.goal for p in pieces):
+            items.append('<span class="tz-key-item">'
+                         '<span class="tz-out tz-out--goal">GOAL</span>'
+                         'Scored</span>')
+        groups.append(("Outcome", "".join(items)))
+
+    if not groups:
+        return ""
+    blocks = "".join(f'<div class="tz-key-group">'
+                     f'<span class="tz-key-label">{name}</span>{items}</div>'
+                     for name, items in groups)
+    return f'<div class="tz-key">{blocks}</div>'
+
+
 def _ledger(pieces, home: str) -> str:
     """
     The ledger as notation, not as a spreadsheet.
@@ -273,6 +357,7 @@ def render(match, theme: str) -> None:
              use_container_width=True)
 
     st.markdown('<div class="tz-sec">Ledger</div>', unsafe_allow_html=True)
+    st.markdown(_ledger_key(pieces), unsafe_allow_html=True)
     st.markdown(_ledger(pieces, match.meta["home_team"]), unsafe_allow_html=True)
 
     st.markdown('<div class="tz-sec">Report</div>', unsafe_allow_html=True)

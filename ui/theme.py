@@ -428,6 +428,24 @@ a.tz-fix:hover { border-color: var(--accent); transform: translateY(-1px); }
 }
 .tz-l-zone { color: var(--muted); font-size: 11px; }
 
+/* The ledger key. Every swatch reuses the row classes above rather than
+   restating them, so the key cannot drift from the table it explains. */
+.tz-key {
+  display: flex; flex-wrap: wrap; gap: 9px 26px;
+  margin: -2px 0 14px; align-items: center;
+}
+.tz-key-group { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.tz-key-label {
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: 1px;
+  color: var(--faint);
+}
+.tz-key-item {
+  display: flex; align-items: center; gap: 7px;
+  font-family: var(--font-ui); font-size: 11px; color: var(--muted);
+}
+.tz-key-item .tz-dot { margin-right: 0; }
+.tz-key-rule { display: inline-block; width: 24px; }
+
 /* The delivery rule: same notation as the pitch. */
 .tz-l-line i { display: block; height: 0; width: 100%; }
 .tz-l-line i.tz-l-solid { border-top: 2px solid var(--muted); }

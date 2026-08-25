@@ -257,6 +257,14 @@ A completed delivery is drawn as a **comet**: the stroke tapers and brightens fr
 
 The ledger uses the same vocabulary as the pitch — a solid rule where the delivery found a teammate, dashed where it was cleared, the accent only where it led to a shot, filled or hollow dot for the duel. It is notation in a table, not a spreadsheet dump.
 
+**And therefore it carries a key.** Notation the reader has to infer is not notation. The key is built from the match like every other legend here — a match with no penalty offers no PK badge, one where every delivery was met offers no "no contact" dot — and each swatch reuses the row classes rather than restating the styling, so the key and the table cannot drift apart.
+
+It sits **above** the table, unlike chart legends, which sit below. A key underneath forty-five rows is a key you reach long after you needed it.
+
+**Style and colour are independent channels in the ledger, and the first version of the key hid that.** The rule says whether the ball was found; the accent says whether a shot followed. A cleared delivery that still produced a shot is drawn dashed *and* in accent — which happens in real matches — so listing the accent as a third entry under "Delivery" implied it was a third line style. The accent is named for the channel it actually is.
+
+Note the badge for a throw-in reads "Throw-In", not "Long Throw". Only throws finishing in the box are kept and they split into the long-throw weapon and short throws worked in; the subtype column carries that distinction, so the badge must not pre-empt it.
+
 **Orientation, verified.** WhoScored records every event in the acting team's attacking frame; the mirror to a common frame is a 180° rotation, `x -> 100-x, y -> 100-y`. Checked four ways: mirrored aerial pairs land exactly on each other; first contact sits a median 1.9m from where the delivery finished across 120 matches; a landmark render puts the attacked goal at the top with the penalty spot centred below it; and near/far post labels contradict actual post distances in 0 of 13 corners. Note the rendered x-axis is inverted, so opta `y=0` appears on the **right**.
 
 ---
