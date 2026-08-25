@@ -86,7 +86,11 @@ Four things follow, and all four are implemented:
 - **A failed lookup must not read as an empty competition.** "Coming soon" is a claim about the football; "Unavailable" is a claim about us. Showing the first when the second is true is quietly wrong about every competition at once, which is exactly what a throttled deploy produces.
 - **An unreachable competition stays clickable.** We cannot assert it is empty, and clicking is how you retry.
 
+- **A circuit breaker stops the retry ladder repeating.** When the address is being refused, every request will be refused, and paying full retries on each turned a failed chooser into 39 seconds of spinner. Two consecutive failures open the circuit; later calls fail immediately for a cooldown, and one success closes it. The failure path is now about five seconds.
+
 When something does fail the chooser says so once, with the reason, rather than leaving a wall of dashes to be interpreted.
+
+**The failure path has to be rendered, not reasoned about.** `Summary.season` became optional when failures started carrying a reason, and one caller still reached through it — which crashed the whole chooser on exactly the deploy where failures are normal. It was caught in production, not in testing, because every local check ran against a healthy connection. Point `TRAZADO_PROXY` at a dead port to force the failing state and look at the page.
 
 ### Why our own scraper
 

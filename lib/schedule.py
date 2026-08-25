@@ -258,6 +258,18 @@ class Summary:
     def count(self) -> int:
         return len(self.recent)
 
+    @property
+    def season_name(self) -> str:
+        """
+        The season label, or "" when the lookup failed.
+
+        Exposed as a property because `season` is optional and every caller
+        that reached through it had to remember that. One of them did not, and
+        a hosted deploy -- where failures are the common case, not the rare
+        one -- crashed on the competition chooser instead of degrading.
+        """
+        return self.season.name if self.season else ""
+
 
 def failed(competition: Competition, reason: str) -> "Summary":
     return Summary(season=None, recent=(), error=reason)

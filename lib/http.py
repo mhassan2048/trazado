@@ -81,7 +81,10 @@ def politely(work, items):
 
     def staggered(indexed):
         index, item = indexed
-        time.sleep(STAGGER * index + random.uniform(0, STAGGER))
+        # No point pacing politely into a wall: once the circuit is open the
+        # remaining work is going to fail instantly anyway.
+        if not _circuit_open():
+            time.sleep(STAGGER * index + random.uniform(0, STAGGER))
         return work(item)
 
     workers = max(1, min(MAX_PARALLEL, len(items)))
@@ -92,6 +95,42 @@ def politely(work, items):
 # chooser resolves six competitions at once. Each thread gets its own, built
 # on first use and reused thereafter.
 _local = threading.local()
+
+# Circuit breaker. When WhoScored is refusing this address, every request will
+# be refused, and paying the full retry ladder on each one turned a failed
+# competition chooser into 39 seconds of spinner followed by six identical
+# errors. After a few consecutive failures the circuit opens and calls fail
+# immediately; one success closes it.
+_BREAKER_TRIP = int(os.environ.get("TRAZADO_BREAKER", "2"))
+_BREAKER_COOLDOWN = float(os.environ.get("TRAZADO_COOLDOWN", "30"))
+_breaker = {"failures": 0, "opened_at": 0.0}
+_breaker_lock = threading.Lock()
+
+
+def _circuit_open() -> bool:
+    with _breaker_lock:
+        if _breaker["failures"] < _BREAKER_TRIP:
+            return False
+        if time.time() - _breaker["opened_at"] > _BREAKER_COOLDOWN:
+            _breaker["failures"] = 0          # cooled off; let one through
+            return False
+        return True
+
+
+def _record(success: bool) -> None:
+    with _breaker_lock:
+        if success:
+            _breaker["failures"] = 0
+        else:
+            _breaker["failures"] += 1
+            if _breaker["failures"] == _BREAKER_TRIP:
+                _breaker["opened_at"] = time.time()
+
+
+def breaker_state() -> str:
+    with _breaker_lock:
+        n = _breaker["failures"]
+    return "open" if _circuit_open() else f"closed ({n} recent failures)"
 
 
 class FetchError(RuntimeError):
@@ -127,8 +166,8 @@ def reset() -> None:
     _local.session = None
 
 
-def get(url: str, *, referer: str | None = None, timeout: int = 30,
-        retries: int = 3) -> str:
+def get(url: str, *, referer: str | None = None, timeout: int = 20,
+        retries: int = 2) -> str:
     """
     Fetch a page, backing off and rebuilding the session when refused.
 
@@ -143,6 +182,9 @@ def get(url: str, *, referer: str | None = None, timeout: int = 30,
     """
     headers = {"Referer": referer} if referer else {}
     last = ""
+    # Once the circuit is open, do not retry -- the answer will be the same.
+    if _circuit_open():
+        retries = 0
     for attempt in range(retries + 1):
         try:
             response = session().get(url, timeout=timeout, headers=headers)
@@ -152,6 +194,7 @@ def get(url: str, *, referer: str | None = None, timeout: int = 30,
             response = None
 
         if status == 200:
+            _record(True)
             return response.text
         if status is not None:
             last = f"status {status}"
@@ -159,10 +202,11 @@ def get(url: str, *, referer: str | None = None, timeout: int = 30,
         retryable = status in (403, 429, 500, 502, 503, 504) or status is None
         if retryable and attempt < retries:
             reset()
-            time.sleep(min(8.0, 1.5 * (2 ** attempt)) + random.uniform(0, 0.75))
+            time.sleep(min(4.0, 1.2 * (2 ** attempt)) + random.uniform(0, 0.5))
             continue
         break
 
+    _record(False)
     hint = ""
     if "403" in last or "429" in last:
         hint = (" WhoScored rate limits bursts and throttles datacentre "

@@ -85,7 +85,7 @@ def _season_label(summaries: dict) -> str:
     competition spanning a calendar year differently -- the most common one
     wins and the heading stays a single clean line.
     """
-    names = [s.season.name for s in summaries.values() if s and s.season.name]
+    names = [s.season_name for s in summaries.values() if s and s.season_name]
     if not names:
         return ""
     return _short_season(Counter(names).most_common(1)[0][0])

@@ -85,7 +85,7 @@ def _chips(days: list[str], active: str | None, competition_key: str, theme: str
 
 def render(competition, summary, theme: str, day: str | None = None) -> None:
     logo = data_uri("leagues/" + competition.logo)
-    season_name = summary.season.name if summary else ""
+    season_name = summary.season_name if summary else ""
     st.markdown(
         f'<div class="tz-league">'
         f'  <div class="tz-chip"><img src="{logo}" alt=""></div>'
