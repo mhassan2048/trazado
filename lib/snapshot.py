@@ -72,9 +72,20 @@ def write(entries: dict[str, dict], path: str = PATH) -> str:
 
     Sorted and stably formatted so an unchanged fetch produces an identical
     file and the scheduled job has nothing to commit.
+
+    The top-level stamp is the **oldest** entry's own fetch time, not the
+    clock. A fetch where every competition failed carries all six previous
+    entries forward, and stamping that "now" would have the app call
+    days-old fixtures fresh and print "Fixtures as of" a time nothing was
+    fetched at. The file is only as current as its stalest entry.
+
+    That is also what makes the byte-identical claim above true: a run that
+    changes nothing now reproduces the same stamp.
     """
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    payload = {"fetched_at": _now().isoformat(timespec="seconds"),
+    stamps = [_parse(e.get("fetched_at")) for e in entries.values()]
+    oldest = min([s for s in stamps if s], default=_now())
+    payload = {"fetched_at": oldest.isoformat(timespec="seconds"),
                "competitions": dict(sorted(entries.items()))}
     with open(path, "w", encoding="utf-8") as handle:
         json.dump(payload, handle, indent=2, ensure_ascii=False, sort_keys=True)

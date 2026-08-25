@@ -35,6 +35,25 @@ jobs:
       # would add a minute a run for a stack nothing here calls.
       - run: pip install --quiet "curl_cffi>=0.7"
 
+      # Every run started failing at Fetch, and the logs are admin-only while
+      # step names and conclusions are public. This lights up exactly one of
+      # three named steps, so the verdict is readable from the REST API
+      # without credentials. Delete it once the cause is settled.
+      - name: Probe WhoScored
+        id: probe
+        continue-on-error: true
+        run: python scripts/probe.py
+
+      - name: "verdict - reachable from this runner (HTTP 200)"
+        if: steps.probe.outputs.verdict == 'ok'
+        run: echo reachable
+      - name: "verdict - address refused (403 or 429)"
+        if: steps.probe.outputs.verdict == 'refused'
+        run: echo refused
+      - name: "verdict - transport or other failure"
+        if: steps.probe.outputs.verdict == 'other'
+        run: echo other
+
       - name: Fetch
         run: python scripts/fetch_schedule.py
 
