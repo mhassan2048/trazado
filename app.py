@@ -62,13 +62,12 @@ def main() -> None:
     # The header is identical on every screen, so it is rendered before the
     # branch rather than inside each one.
     if match_id or competition:
-        # Carry the screen's own params through a theme switch, so changing
-        # theme never navigates away from the day you were looking at.
-        keep = {}
-        if competition and not match_id:
-            keep["competition"] = competition
-            if params.get("day"):
-                keep["day"] = params.get("day")
+        # Carry every param that identifies the current screen through a theme
+        # switch. Built from the query string rather than listed by hand: the
+        # hand-written version dropped `match`, so changing theme on a match
+        # threw you back to the competition list, and any param added later
+        # would have been dropped the same way.
+        keep = {k: v for k, v in params.items() if k != "theme" and v}
         st.markdown(header(active, **keep), unsafe_allow_html=True)
         st.markdown(
             f'<a class="tz-back" href="{link(theme=active)}" target="_self">'
