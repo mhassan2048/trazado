@@ -1,7 +1,7 @@
 {
   "competitions": {
     "bundesliga": {
-      "fetched_at": "2026-08-25T20:06:53+00:00",
+      "fetched_at": "2026-08-26T02:43:08+00:00",
       "fixtures": [
         {
           "away": "Schalke 04",
@@ -118,7 +118,7 @@
       "stage_id": 25666
     },
     "epl": {
-      "fetched_at": "2026-08-25T20:06:46+00:00",
+      "fetched_at": "2026-08-26T02:43:01+00:00",
       "fixtures": [
         {
           "away": "Arsenal",
@@ -488,7 +488,7 @@
       "stage_id": 25544
     },
     "laliga": {
-      "fetched_at": "2026-08-25T20:06:48+00:00",
+      "fetched_at": "2026-08-26T02:43:04+00:00",
       "fixtures": [
         {
           "away": "Rayo Vallecano",
@@ -649,14 +649,14 @@
         {
           "away": "Real Betis",
           "away_id": 54,
-          "away_score": 0,
-          "elapsed": "HT",
+          "away_score": 1,
+          "elapsed": "FT",
           "home": "Valencia",
           "home_id": 55,
           "home_score": 0,
           "kickoff": "2026-08-25T20:00:00",
           "match_id": 1993906,
-          "status": 3
+          "status": 6
         },
         {
           "away": "Deportivo de A Coruna",
@@ -824,35 +824,23 @@
           "home_score": 2,
           "kickoff": "2026-08-16T16:00:00",
           "match_id": 1993903,
-          "status": 6
-        },
-        {
-          "away": "Rayo Vallecano",
-          "away_id": 64,
-          "away_score": 1,
-          "elapsed": "FT",
-          "home": "Sevilla",
-          "home_id": 67,
-          "home_score": 2,
-          "kickoff": "2026-08-15T20:30:00",
-          "match_id": 1993905,
-          "status": 6
-        },
-        {
-          "away": "Getafe",
-          "away_id": 819,
-          "away_score": 0,
-          "elapsed": "FT",
-          "home": "Deportivo Alaves",
-          "home_id": 60,
-          "home_score": 3,
-          "kickoff": "2026-08-15T18:30:00",
-          "match_id": 1993897,
           "status": 6
         }
       ],
       "recent": [
         {
+          "away": "Real Betis",
+          "away_id": 54,
+          "away_score": 1,
+          "elapsed": "FT",
+          "home": "Valencia",
+          "home_id": 55,
+          "home_score": 0,
+          "kickoff": "2026-08-25T20:00:00",
+          "match_id": 1993906,
+          "status": 6
+        },
+        {
           "away": "Deportivo de A Coruna",
           "away_id": 59,
           "away_score": 1,
@@ -1018,30 +1006,6 @@
           "home_score": 2,
           "kickoff": "2026-08-16T16:00:00",
           "match_id": 1993903,
-          "status": 6
-        },
-        {
-          "away": "Rayo Vallecano",
-          "away_id": 64,
-          "away_score": 1,
-          "elapsed": "FT",
-          "home": "Sevilla",
-          "home_id": 67,
-          "home_score": 2,
-          "kickoff": "2026-08-15T20:30:00",
-          "match_id": 1993905,
-          "status": 6
-        },
-        {
-          "away": "Getafe",
-          "away_id": 819,
-          "away_score": 0,
-          "elapsed": "FT",
-          "home": "Deportivo Alaves",
-          "home_id": 60,
-          "home_score": 3,
-          "kickoff": "2026-08-15T18:30:00",
-          "match_id": 1993897,
           "status": 6
         }
       ],
@@ -1050,7 +1014,7 @@
       "stage_id": 25662
     },
     "ligue1": {
-      "fetched_at": "2026-08-25T20:06:56+00:00",
+      "fetched_at": "2026-08-26T02:57:13+00:00",
       "fixtures": [
         {
           "away": "Marseille",
@@ -1360,7 +1324,7 @@
       "stage_id": 25554
     },
     "seriea": {
-      "fetched_at": "2026-08-25T20:06:51+00:00",
+      "fetched_at": "2026-08-26T02:43:06+00:00",
       "fixtures": [
         {
           "away": "Bologna",
@@ -1730,7 +1694,7 @@
       "stage_id": 25518
     },
     "ucl": {
-      "fetched_at": "2026-08-25T20:06:59+00:00",
+      "fetched_at": "2026-08-26T02:57:15+00:00",
       "fixtures": [],
       "recent": [],
       "season_id": 11295,
@@ -1738,5 +1702,5 @@
       "stage_id": 0
     }
   },
-  "fetched_at": "2026-08-25T20:06:46+00:00"
+  "fetched_at": "2026-08-26T02:43:01+00:00"
 }
