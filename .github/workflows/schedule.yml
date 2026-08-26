@@ -42,6 +42,8 @@ jobs:
       - name: Probe WhoScored
         id: probe
         continue-on-error: true
+        env:
+          TRAZADO_PROXY: ${{ secrets.TRAZADO_PROXY }}
         run: python scripts/probe.py
 
       - name: "verdict - reachable from this runner (HTTP 200)"
@@ -54,7 +56,14 @@ jobs:
         if: steps.probe.outputs.verdict == 'other'
         run: echo other
 
+      # Confirmed: WhoScored refuses this runner's address outright, so a
+      # direct fetch from here cannot work no matter how patiently it retries.
+      # lib/http already reads TRAZADO_PROXY, so adding a repository secret of
+      # that name is the whole fix -- and until one exists this is an empty
+      # string and the step behaves exactly as it does today.
       - name: Fetch
+        env:
+          TRAZADO_PROXY: ${{ secrets.TRAZADO_PROXY }}
         run: python scripts/fetch_schedule.py
 
       - name: Commit if it changed

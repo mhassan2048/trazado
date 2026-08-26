@@ -33,21 +33,46 @@ from ui.chrome import header, link             # noqa: E402
 # empty app. Section 1 governs match event data, which is never cached.
 @st.cache_data(ttl=900, show_spinner="Checking what has been played…")
 def summaries():
-    """Which season is live, and how many matches are openable right now."""
+    """
+    Which season is live, how many matches are openable, and where that came
+    from -- returned together so the two cannot disagree.
+
+    Deriving the note separately got this exactly backwards. A stale snapshot
+    served through the fallback below came out with no stamp at all, because
+    the note only spoke up when the snapshot was fresh. That is the one case
+    where saying when matters most: old fixtures presented silently read as
+    current ones.
+    """
     data = snapshot.read()
     if snapshot.is_fresh(data):
-        return snapshot.to_summaries(data)
+        return snapshot.to_summaries(data), _stamp(data)
+
+    # summarise_all does not raise when a competition is refused -- it returns
+    # a summary carrying the reason. So "did the live fetch work" is a
+    # question about how many competitions came back usable, not about
+    # whether an exception escaped. Relying on the exception meant a refused
+    # deploy would render six Unavailable cards while a perfectly good, if
+    # older, snapshot sat unread on disk.
     try:
-        return schedule.summarise_all(COMPETITIONS)
+        live = schedule.summarise_all(COMPETITIONS)
     except Exception:
-        return snapshot.to_summaries(data) if data else {}
+        live = {}
+    stored = snapshot.to_summaries(data) if data else {}
+
+    usable = sum(1 for s in live.values() if s.ok)
+    kept = sum(1 for s in stored.values() if s.ok)
+    # Serve whichever shows the reader more competitions, and say when it is
+    # the older one. A complete set of yesterday's fixtures beats two live
+    # leagues and four dashes.
+    if usable and usable >= kept:
+        return live, ""
+    if kept:
+        return stored, _stamp(data)
+    return live, ""
 
 
-def schedule_note() -> str:
-    """When the fixtures were last refreshed, or "" when fetched live."""
-    data = snapshot.read()
-    if not snapshot.is_fresh(data):
-        return ""
+def _stamp(data) -> str:
+    """The "as of" line for a snapshot we are actually serving."""
     stamp = snapshot.fetched_at(data)
     return stamp.strftime("Fixtures as of %d %b, %H:%M UTC") if stamp else ""
 
@@ -110,7 +135,7 @@ def main() -> None:
             stub("Unknown competition", "That competition is not one of the six.")
             return
         try:
-            live = summaries()
+            live, _ = summaries()
         except Exception:
             live = {}
         matches.render(chosen, live.get(competition), active,
@@ -118,10 +143,10 @@ def main() -> None:
         return
 
     try:
-        live = summaries()
+        live, note = summaries()
     except Exception:
-        live = {}  # The chooser still renders; cards show a dash.
-    competitions.render(active, summaries=live, note=schedule_note())
+        live, note = {}, ""  # The chooser still renders; cards show a dash.
+    competitions.render(active, summaries=live, note=note)
 
 
 if __name__ == "__main__":
