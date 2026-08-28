@@ -69,54 +69,59 @@ from __future__ import annotations
 # Every token also clears section 5 on BOTH bg and surface: 4.5:1 for body text,
 # 3:1 for secondary text and chart lines. `faint` is the one that fails when
 # nudged, so re-measure it after any change.
+# Rose / olive / azure, at three weights. Two findings forced this and both are
+# worth keeping.
+#
+# **The validator was being run adjacent-pairs-only, which hid a real fault.**
+# With `--pairs all` it compares every pair, and the palettes that preceded these
+# do not survive it: copper/teal/periwinkle scores 7.9, below the floor. Search
+# with all-pairs checking and almost everything collapses -- of nine hand-picked
+# families only rose/olive/azure passed, at 11.7 against 7.9 for the next best.
+# Run the validator with `--pairs all` or it will tell you what you want to hear.
+#
+# **Thin tapered strokes need chroma.** A near-monochrome Newspaper -- black,
+# coffee, grey -- separated beautifully on paper and was unreadable in practice,
+# because a comet fades from solid to nothing and a low-chroma stroke has no
+# fade left to give. Chroma is floored at 0.12 here for that reason alone.
+#
+# Olive rather than green is not a preference. Rose against green is the classic
+# deuteranopia confusion; h122 is as far toward green as the middle slot can go
+# and still be seen by a red-green colour-blind reader.
+#
+# Themes differ by weight rather than by hue, because only one hue structure
+# survives: Vivid boldest at C 0.145, Moon lighter and softer at 0.125,
+# Newspaper deeper at 0.122 for its cream ground. Accents are teal, the widest
+# gap left in the wheel, and each is checked against the series it sits beside
+# rather than only against the ground.
+#
+# Every token clears section 5 on BOTH bg and surface: 4.5:1 body text, 3:1
+# secondary text and chart lines. `faint` is the one that fails when nudged.
 THEMES: dict[str, dict[str, str]] = {
     "vivid": {
         "bg": "#101017", "surface": "#1A1A23", "surface-dim": "#14141B",
         "line": "#2E2E3C", "line-dim": "#222230",
         "ink": "#ECEAF2", "muted": "#9A96A8", "faint": "#696577",
-        "accent": "#DAB33A", "accent-on": "#2A2208",
-        "hot": "#DD6F80", "warn": "#C98A6A",
-        "s1": "#C37551", "s2": "#11A195", "s3": "#8582CC",
+        "accent": "#62D4C8", "accent-on": "#06302C",
+        "hot": "#E0785E", "warn": "#D2A244",
+        "s1": "#D3658F", "s2": "#819C23", "s3": "#1299DE",
         "chip": "#FFFFFF",
     },
     "moon": {
         "bg": "#0D1016", "surface": "#161B22", "surface-dim": "#11151B",
         "line": "#28303B", "line-dim": "#1D242D",
         "ink": "#E2E7EE", "muted": "#8B95A4", "faint": "#606977",
-        "accent": "#DAB33A", "accent-on": "#26200A",
-        "hot": "#D97F86", "warn": "#C08A63",
-        "s1": "#CB7A55", "s2": "#12A89B", "s3": "#8B88D5",
+        "accent": "#66DAD7", "accent-on": "#06302F",
+        "hot": "#DC8266", "warn": "#C9A15A",
+        "s1": "#D27295", "s2": "#88A142", "s3": "#3F9EDA",
         "chip": "#FFFFFF",
     },
-    # Newspaper is a tone ramp, not a hue wheel, and it deliberately fails two
-    # of the validator's checks. Worth reading before anyone "fixes" it.
-    #
-    # Lightness band and chroma floor both FAIL: black sits at L 0.17 and every
-    # series colour reads as grey. Those two checks exist to guarantee that
-    # colours separate by *hue*. This palette separates by *tone* instead --
-    # which is how newsprint has always worked, and which colour blindness
-    # cannot touch.
-    #
-    # The checks that measure the actual goal all pass, and by a wider margin
-    # than any hue-based set found for this theme: CVD separation 15.5 protan /
-    # 18.9 tritan against 9.3 / 8.0 for the best hue palette, normal-vision
-    # floor 18.4 against 9.3, contrast passing throughout. So this is more
-    # readable to colour-blind readers, not less.
-    #
-    # Navy is the only member with real chroma, which is what makes it work as
-    # the accent: in an otherwise monochrome palette the one coloured mark reads
-    # as "something happened here" rather than as a fourth set piece type.
-    #
-    # One known tension: `grey` sits ΔE 6.5 from `faint`. They are never the
-    # same kind of mark -- grey fills series marks, faint draws small secondary
-    # text and hollow outlines -- but do not put them side by side as fills.
     "newspaper": {
         "bg": "#FBF7EE", "surface": "#F3EDE0", "surface-dim": "#EEE7D7",
         "line": "#DAD1BF", "line-dim": "#E6DFCF",
         "ink": "#332F28", "muted": "#736A5A", "faint": "#908673",
-        "accent": "#123865", "accent-on": "#EAF0F7",
+        "accent": "#003636", "accent-on": "#E8F2F1",
         "hot": "#A64B33", "warn": "#8C6B1F",
-        "s1": "#130E0B", "s2": "#552C0A", "s3": "#727C86",
+        "s1": "#A54D6E", "s2": "#637916", "s3": "#0776AE",
         "chip": "#FFFFFF",
     },
 }
