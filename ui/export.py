@@ -41,8 +41,9 @@ VISUALS: dict[str, dict] = {
         "label": "Comparison",
         "team": False,
         # Taller than the others: this card carries no strip and no caption,
-        # so the band starts just under the title instead of below a rule.
-        "rect": [0.075, 0.150, 0.850, 0.700],
+        # so it runs up to just under the title rather than stopping at the
+        # ceiling the strip imposes on every other card.
+        "rect": [0.075, 0.150, 0.850, 0.705],
         "heading": "Team Comparison",
     },
     "threat": {
@@ -55,13 +56,13 @@ VISUALS: dict[str, dict] = {
     "timeline": {
         "label": "Timeline",
         "team": False,
-        "rect": [0.085, 0.220, 0.845, 0.561],
+        "rect": [0.085, 0.220, 0.845, 0.550],
         "heading": "Dead Balls Against the Scoreline",
     },
     "deliveries": {
         "label": "Delivery Map",
         "team": True,
-        "rect": [0.075, 0.160, 0.850, 0.626],
+        "rect": [0.075, 0.160, 0.850, 0.610],
         "heading": "Set-Pieces",
     },
     "chains": {
@@ -74,7 +75,7 @@ VISUALS: dict[str, dict] = {
     "aerials": {
         "label": "Aerial Duels",
         "team": True,
-        "rect": [0.075, 0.318, 0.850, 0.468],
+        "rect": [0.075, 0.318, 0.850, 0.452],
         "extra": [0.100, 0.150, 0.800, 0.150],
         "legend_y": 0.300,
         "heading": "Aerial Duels",
@@ -118,8 +119,14 @@ def _mark(figure, x, y, size, palette):
 # scattered as literals, which is how the title drifted off the strip's edge
 # when the caption was removed and nothing recomputed around it.
 MARGIN_L, MARGIN_R = 0.075, 0.925
-TITLE_Y = 0.882
-STRIP_VALUE_Y, STRIP_LABEL_Y, STRIP_RULE_Y = 0.836, 0.812, 0.793
+
+# The title is set at 32pt, so measuring the gap between baselines understates
+# how close it lands to the strip: the two blocks nearly touched at 0.046 apart
+# and read as one stacked lump. The title now sits nearer the header rule and
+# the strip drops away from it, roughly doubling the visible air between them.
+TITLE_Y = 0.893
+STRIP_VALUE_Y, STRIP_LABEL_Y, STRIP_RULE_Y = 0.822, 0.798, 0.780
+VISUAL_CEILING = 0.770
 
 CREST_ALPHA = 0.75
 
