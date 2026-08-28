@@ -40,32 +40,61 @@ from __future__ import annotations
 # secondary text and chart lines, against BOTH bg and surface. `faint` is the
 # one that keeps failing when nudged -- it sat at 2.76:1 on surface during this
 # rebuild before being lifted -- so re-measure it after any change.
+# Series colours are chosen, not derived. Each theme names its own set rather
+# than sharing one across all three -- an earlier version used identical hexes
+# for Vivid and Moon, which made the two themes indistinguishable in the one
+# channel that carries meaning.
+#
+#   Vivid      Copper / Teal / Periwinkle
+#   Moon       the same family, lighter and slightly cooler for its ground
+#   Newspaper  Rose / Olive / Azure, pitched deeper to hold a light surface
+#
+# Chroma is even within each set. The set this replaced ran 0.225 / 0.114 /
+# 0.210, so two colours shouted and one receded; that imbalance is what reads as
+# garish, and it is measurable rather than a matter of taste.
+#
+# All three pass the dataviz validator on their own surface -- lightness band,
+# chroma floor, CVD separation, normal-vision floor, 3:1 contrast. Section 4
+# makes colour the only channel carrying set piece type, with no shape markers
+# to fall back on, so separation cannot be traded for prettiness.
+#
+# **The accent is checked against the series, not just against the ground.** It
+# means "led to a shot" and nothing else, so it must not read as a fourth type.
+# The blue accents that preceded these sat ΔE 6.5 from Newspaper's azure and 8.5
+# from Moon's periwinkle -- close enough to pass for a type colour. Gold on the
+# dark themes and violet on Newspaper clear every series by ΔE 15.8 or better.
+# `hot` and `warn` are not part of that check because neither ever appears on a
+# chart beside the series; they live on the chooser and the logo mark.
+#
+# Every token also clears section 5 on BOTH bg and surface: 4.5:1 for body text,
+# 3:1 for secondary text and chart lines. `faint` is the one that fails when
+# nudged, so re-measure it after any change.
 THEMES: dict[str, dict[str, str]] = {
     "vivid": {
         "bg": "#101017", "surface": "#1A1A23", "surface-dim": "#14141B",
         "line": "#2E2E3C", "line-dim": "#222230",
         "ink": "#ECEAF2", "muted": "#9A96A8", "faint": "#696577",
-        "accent": "#6FB8D9", "accent-on": "#0B2733",
-        "hot": "#DD6F80", "warn": "#D2A244",
-        "s1": "#BC7D25", "s2": "#0AA480", "s3": "#9E77C9",
+        "accent": "#DAB33A", "accent-on": "#2A2208",
+        "hot": "#DD6F80", "warn": "#C98A6A",
+        "s1": "#C37551", "s2": "#11A195", "s3": "#8582CC",
         "chip": "#FFFFFF",
     },
     "moon": {
         "bg": "#0D1016", "surface": "#161B22", "surface-dim": "#11151B",
         "line": "#28303B", "line-dim": "#1D242D",
         "ink": "#E2E7EE", "muted": "#8B95A4", "faint": "#606977",
-        "accent": "#7FA8D9", "accent-on": "#0B1A2B",
-        "hot": "#D97F86", "warn": "#C9A15A",
-        "s1": "#BC7D25", "s2": "#0AA480", "s3": "#9E77C9",
+        "accent": "#DAB33A", "accent-on": "#26200A",
+        "hot": "#D97F86", "warn": "#C08A63",
+        "s1": "#CB7A55", "s2": "#12A89B", "s3": "#8B88D5",
         "chip": "#FFFFFF",
     },
     "newspaper": {
         "bg": "#FBF7EE", "surface": "#F3EDE0", "surface-dim": "#EEE7D7",
         "line": "#DAD1BF", "line-dim": "#E6DFCF",
         "ink": "#332F28", "muted": "#736A5A", "faint": "#908673",
-        "accent": "#2F6B8F", "accent-on": "#EAF1F5",
+        "accent": "#5F3389", "accent-on": "#F1EAF6",
         "hot": "#A64B33", "warn": "#8C6B1F",
-        "s1": "#9D671C", "s2": "#04896A", "s3": "#8463A8",
+        "s1": "#AA486B", "s2": "#5D7B05", "s3": "#2272B9",
         "chip": "#FFFFFF",
     },
 }

@@ -267,8 +267,9 @@ The logo's vocabulary is the chart vocabulary. Keep them identical.
 One hue per set piece type, per theme. Every set passes all five checks on its own chart surface — OKLCH lightness band, chroma floor, colour-blind separation, normal-vision separation, and 3:1 contrast:
 
 ```
-vivid / moon   s1 #BC7D25   s2 #0AA480   s3 #9E77C9      (L 0.64, C 0.125)
-newspaper      s1 #9D671C   s2 #04896A   s3 #8463A8      (L 0.56, C 0.110)
+vivid       s1 #C37551   s2 #11A195   s3 #8582CC   Copper / Teal / Periwinkle
+moon        s1 #CB7A55   s2 #12A89B   s3 #8B88D5   the same family, lighter
+newspaper   s1 #AA486B   s2 #5D7B05   s3 #2272B9   Rose / Olive / Azure
 ```
 
 Found by searching OKLCH space, not picked by eye: every hand-picked set failed colour-blind separation, usually teal against pink under deuteranopia. Re-run the check before changing any of them.
@@ -278,6 +279,12 @@ Found by searching OKLCH space, not picked by eye: every hand-picked set failed 
 Evening the chroma costs colour-blind separation, because ΔE comes largely from chroma — and section 4 makes colour the *only* channel carrying set piece type, with no shape markers to fall back on, so separation cannot be traded away. The fix was to search for hues that reach **even** chroma while staying separable, rather than to desaturate the ones already chosen.
 
 The result is one hue family across all three themes — **ochre 70, jade 170, lavender 305** — differing only in lightness, with chroma even within a theme. Validated: deutan 10.8 / tritan 14.4 on dark, 9.4 / 12.6 on light, normal-vision floor and 3:1 contrast passing throughout.
+
+**Each theme names its own set.** An earlier version used identical hexes for Vivid and Moon, which made the two themes indistinguishable in the one channel that carries meaning. They now differ by design intent: Vivid runs boldest, Moon lighter and cooler for its ground, Newspaper pitched deeper to hold a light surface.
+
+**Some triples are impossible, and it is worth knowing which.** Anything pairing a red with a green scores deutan 0.0–2.1 and is unusable — Coral/Sage/Slate, Gold/Emerald/Plum and Clay/Forest/Mauve were all searched and discarded. With no shape markers to fall back on there is no secondary encoding to rescue them.
+
+**The accent is checked against the series, not only against the ground.** It means "led to a shot" and nothing else, so it must not read as a fourth type. The blue accents that preceded the current ones sat ΔE 6.5 from Newspaper's azure and 8.5 from Moon's periwinkle — close enough to pass for a type colour, and only visible when measured. Gold on the dark themes and violet on Newspaper clear every series by ΔE 15.8 or better. `hot` and `warn` are exempt because neither ever appears on a chart beside the series; they live on the chooser and the logo mark.
 
 The lesson for next time: **a palette can pass every check and still be wrong.** The checks catch inaccessibility, not garishness. Uneven chroma is what garishness usually is, and it is measurable.
 
@@ -443,7 +450,7 @@ Row of type buttons, one per visual. Live preview of the branded card. Actions: 
 - 4:5 portrait, around 1080 by 1350. Takes more feed space than 16:9 and suits a tall pitch graphic.
 - Rendered separately from the on screen figure. Different padding, different type sizes, and the branding block exists only on the export.
 - Header: mark and wordmark left, match identity and competition right.
-- Title, then a caption line stating the single most interesting fact from that match.
+- Title. **No caption.** A sentence under the title restated what the chart already showed, and on a card whose whole argument is the visual it read as hedging. The title names the thing; the graphic makes the case. The band it occupied went to the visual.
 - **Header text is Title Case.** Not shouting caps, not lowercase.
 - **Every element gets reserved space.** Charts are laid out in bands measured from the data, never as a fraction of the axis with labels dropped wherever they land — that put team names straight through the tick bars and clipped a 90th-minute goal off the right edge. Text near an axis edge anchors away from it.
 - The visual.

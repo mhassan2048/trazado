@@ -48,33 +48,33 @@ VISUALS: dict[str, dict] = {
     "threat": {
         "label": "Set-Piece Threat",
         "team": False,
-        "rect": [0.075, 0.150, 0.850, 0.560],
+        "rect": [0.075, 0.150, 0.850, 0.616],
         "legend_y": 0.055,
         "heading": "Set-Piece Share of Threat",
     },
     "timeline": {
         "label": "Timeline",
         "team": False,
-        "rect": [0.085, 0.220, 0.845, 0.505],
+        "rect": [0.085, 0.220, 0.845, 0.561],
         "heading": "Dead Balls Against the Scoreline",
     },
     "deliveries": {
         "label": "Delivery Map",
         "team": True,
-        "rect": [0.075, 0.160, 0.850, 0.570],
+        "rect": [0.075, 0.160, 0.850, 0.626],
         "heading": "Set-Pieces",
     },
     "chains": {
         "label": "Second Phase",
         "team": True,
-        "rect": [0.075, 0.150, 0.850, 0.545],
+        "rect": [0.075, 0.150, 0.850, 0.601],
         "legend_y": 0.062,
         "heading": "Second Phase",
     },
     "aerials": {
         "label": "Aerial Duels",
         "team": True,
-        "rect": [0.075, 0.318, 0.850, 0.412],
+        "rect": [0.075, 0.318, 0.850, 0.468],
         "extra": [0.100, 0.150, 0.800, 0.150],
         "legend_y": 0.300,
         "heading": "Aerial Duels",
@@ -82,7 +82,7 @@ VISUALS: dict[str, dict] = {
     "goalkicks": {
         "label": "Goal Kicks",
         "team": True,
-        "rect": [0.060, 0.278, 0.880, 0.432],
+        "rect": [0.060, 0.278, 0.880, 0.488],
         "legend_y": 0.200,
         "heading": "Goal Kicks",
     },
@@ -225,26 +225,9 @@ def card(match, pieces, *, visual: str = "deliveries", team: str | None = None,
         figure.text(0.075, 0.888, (f"{team} — " if spec["team"] else "") + heading,
                     color=palette["ink"], fontsize=32, fontweight="bold",
                     va="center", ha="left", alpha=TITLE_ALPHA)
-    if visual == "comparison":
-        # The table already holds every number the strip carried and the
-        # caption restated, so both are dropped rather than printed twice.
-        caption = ""
-    elif visual == "aerials":
-        caption = charts.aerial_caption(scoped)
-    elif visual == "goalkicks":
-        caption = charts.goal_kick_caption(scoped, team)
-    elif visual == "chains":
-        caption = charts.chain_caption(scoped)
-    elif visual == "timeline":
-        caption = charts.timeline_caption(scoped, home, away)
-    elif visual == "comparison":
-        caption = charts.comparison_caption(scoped, home, away)
-    elif visual == "threat":
-        caption = charts.threat_caption(match, scoped, home, away)
-    else:
-        caption = readout.headline(pieces, team)
-    figure.text(0.075, 0.851, caption, color=palette["muted"], fontsize=14,
-                va="top", ha="left", wrap=True)
+    # No captions. A sentence under the title restated what the chart already
+    # showed, and on a card whose whole argument is the visual it read as
+    # hedging. The title names the thing; the graphic makes the case.
 
     # the numbers
     if visual == "comparison":
@@ -260,11 +243,11 @@ def card(match, pieces, *, visual: str = "deliveries", team: str | None = None,
         step = (right - left) / len(cells)
         for index, (value, label) in enumerate(cells):
             x = left + step * index
-            figure.text(x, 0.786, value, color=palette["ink"], fontsize=25,
+            figure.text(x, 0.842, value, color=palette["ink"], fontsize=25,
                         fontweight="bold", va="center", ha="left")
-            figure.text(x, 0.763, label, color=palette["faint"], fontsize=9.5,
+            figure.text(x, 0.819, label, color=palette["faint"], fontsize=9.5,
                         va="center", ha="left")
-        _rule(figure, 0.744, palette, alpha=0.6)
+        _rule(figure, 0.800, palette, alpha=0.6)
 
     # the visual, drawn by the same code the screen uses, at card scale
     rect = spec["rect"]
