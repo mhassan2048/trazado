@@ -8,6 +8,8 @@ goals renders no goal card. An empty panel is never drawn.
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 import streamlit as st
 
 from lib import badges, readout, setpieces
@@ -228,6 +230,31 @@ def _ledger(pieces, home: str) -> str:
     return f'<div class="tz-ledger">{head}{"".join(rows)}</div>'
 
 
+def _slug(text: str) -> str:
+    return "".join(c if c.isalnum() else "-" for c in str(text)).strip("-").lower()
+
+
+def _export_name(match, visual: str, team: str | None, suffix: str = "png") -> str:
+    """
+    A filename that says what it is without being opened.
+
+    Names the visual, who it is about, which match, and when it was exported.
+    Downloads accumulate in one folder and a name like `trazado-threat.png`
+    collides with the next match and tells you nothing a week later.
+
+    The export stamp is UTC and marked as such. The app already labels fixture
+    times in UTC, and an unmarked local timestamp on a file that gets shared is
+    ambiguous in exactly the way a timestamp exists to prevent.
+    """
+    meta = match.meta
+    played = str(meta.get("start_date") or "")[:10].replace("-", "")
+    subject = _slug(team) if team else (
+        f"{_slug(meta.get('home_team'))}-vs-{_slug(meta.get('away_team'))}")
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%MZ")
+    parts = ["trazado", _slug(visual), subject, played or "match", stamp]
+    return "-".join(p for p in parts if p) + f".{suffix}"
+
+
 def _export_panel(match, pieces, theme: str) -> None:
     """
     Section 7's card, one visual at a time.
@@ -243,8 +270,8 @@ def _export_panel(match, pieces, theme: str) -> None:
     st.markdown('<div class="tz-sec">Export</div>', unsafe_allow_html=True)
 
     keys = list(VISUALS)
-    chosen = st.radio(
-        "Visual", keys, horizontal=True, key="export_visual",
+    chosen = st.selectbox(
+        "Visual", keys, key="export_visual",
         format_func=lambda k: VISUALS[k]["label"], label_visibility="collapsed")
 
     spec = VISUALS[chosen]
@@ -260,10 +287,9 @@ def _export_panel(match, pieces, theme: str) -> None:
             png = card(match, pieces, visual=chosen, team=team, theme=theme)
             st.image(png, use_container_width=True)
             who = team or match.meta["match_name"]
-            safe = "".join(c if c.isalnum() else "-" for c in who).strip("-").lower()
             st.download_button(
                 f"Download {who}", data=png,
-                file_name=f"trazado-{chosen}-{safe}.png", mime="image/png",
+                file_name=_export_name(match, chosen, team), mime="image/png",
                 use_container_width=True, key=f"dl_{chosen}_{who}")
 
 
@@ -287,76 +313,20 @@ def render(match, theme: str) -> None:
                     unsafe_allow_html=True)
         return
 
+    # The per-team summary strips stay: they are text, and they are what the
+    # export panel below is a picture of. Everything that used to be rendered
+    # here as its own on-screen figure is now reached through the export
+    # selector -- one rendering path instead of two, and every visual has to
+    # earn a card rather than existing only inside the app.
     for team in (match.meta["home_team"], match.meta["away_team"]):
-        mine = [p for p in pieces if p.team == team]
-        if not mine:
+        if not any(p.team == team for p in pieces):
             continue
         st.markdown(f'<div class="tz-sec">{team}</div>', unsafe_allow_html=True)
         st.markdown(_summary(pieces, team), unsafe_allow_html=True)
         if team == match.meta["home_team"]:
-            # Printed once, under the first strip. The two fractions there have
-            # different denominators and the reader has no way to know that.
             st.markdown(_glossary(), unsafe_allow_html=True)
 
-        drawable = [p for p in mine if p.is_delivery and p.end_x is not None]
-        if drawable:
-            shots = sum(1 for p in drawable if p.led_to_shot)
-            figure = delivery_map(
-                drawable, palette,
-                subtitle=f"{len(drawable)} deliveries · {shots} led to a shot")
-            st.image(to_png(figure), use_container_width=True)
-
-        # Conditional, per section 1. The test must match what the chart
-        # actually plots -- testing `contested` alone let a goal-kick duel open
-        # a panel that then rendered 0/0, because the chart counts deliveries
-        # only and a goal kick is not one.
-        #
-        # The title carries the team. Rendered inside a per-team loop it is
-        # obvious which side it belongs to while you are writing it, and not at
-        # all obvious when you are looking at one map on a long page.
-        if any(p.is_delivery and p.contested for p in mine):
-            st.image(to_png(aerial_zones(mine, palette,
-                                         title=f"{team} — Aerial Duels")),
-                     use_container_width=True)
-        else:
-            st.markdown(
-                f'<p class="tz-note">{team} contested no set-piece delivery in '
-                f'the air, so there is no aerial map for them.</p>',
-                unsafe_allow_html=True)
-
-        # Conditional: a side whose every set piece shot came straight off the
-        # delivery has no second phase to show.
-        if chainable(mine):
-            st.image(to_png(chains(mine, palette,
-                                   title=f"{team} — Second Phase")),
-                     use_container_width=True)
-
-        if any(p.kind == GOAL_KICK for p in mine):
-            st.image(to_png(goal_kicks(
-                mine, palette, match.meta["home_team"],
-                title=f"{team} — Goal Kicks",
-                subtitle=charts_caption(mine, team))),
-                use_container_width=True)
-
-    # Section 3.12, and it belongs above the timeline: it is the summary the
-    # per-team maps above have been building toward, read in one pass.
-    home_team, away_team = match.meta["home_team"], match.meta["away_team"]
-    if comparison_rows(pieces, home_team, away_team):
-        st.markdown('<div class="tz-sec">Comparison</div>',
-                    unsafe_allow_html=True)
-        st.image(to_png(comparison(pieces, palette, home_team, away_team,
-                                   ids={home_team: home_id,
-                                        away_team: away_id})),
-                 use_container_width=True)
-
     _export_panel(match, pieces, theme)
-
-    st.markdown('<div class="tz-sec">Timeline</div>', unsafe_allow_html=True)
-    st.image(to_png(timeline(pieces, palette, match.meta["home_team"],
-                             match.meta["away_team"],
-                             goals=setpieces.match_goals(match),
-                             max_minute=int(match.meta.get("max_minute") or 95))),
-             use_container_width=True)
 
     st.markdown('<div class="tz-sec">Ledger</div>', unsafe_allow_html=True)
     st.markdown(_ledger_key(pieces), unsafe_allow_html=True)
@@ -366,6 +336,5 @@ def render(match, theme: str) -> None:
     text = readout.report(match, pieces)
     st.code(text, language=None)
     st.download_button("Download report", data=text,
-                       file_name=f"trazado-report-"
-                                 f"{match.meta.get('match_id') or 'match'}.txt",
+                       file_name=_export_name(match, "report", None, "txt"),
                        mime="text/plain", key="dl_report")

@@ -417,6 +417,173 @@ def draw_aerial_breakdown(figure, rect, pieces, palette, scale=1.0):
 
 
 # ---------------------------------------------------------------------------
+# set-piece share of threat
+# ---------------------------------------------------------------------------
+
+# npxG spans roughly 0.02 to 0.45 on one match, a 22x ratio. Encoded as area
+# with no bounds the small shots vanish and the biggest swallows the box, so the
+# scale is clamped at both ends and the legend carries reference sizes. An area
+# encoding without a key is unreadable by design.
+MIN_AREA, MAX_AREA = 22.0, 620.0
+KEY_VALUES = (0.05, 0.30)
+
+
+def _area(value, scale=1.0):
+    """Marker area for an npxG value. Area, not radius -- radius exaggerates
+    by the square, which is the classic way a bubble chart lies."""
+    capped = min(max(float(value), 0.0), 0.45) / 0.45
+    return (MIN_AREA + (MAX_AREA - MIN_AREA) * capped) * scale ** 2
+
+
+def draw_threat(figure, rect, match, pieces, palette, home, away, scale=1.0):
+    """
+    Where each side's shot threat came from, and how much of it was dead balls.
+
+    Two half pitches, every shot sized by npxG. Set-piece shots carry the
+    accent and are drawn last; open play sits back as faint outlines. Section 4
+    already says the quiet ones go first so what mattered is never buried --
+    that line was written for deliveries and describes this exactly.
+
+    The claim rests on a handful of shots, so the chart shows every one of them
+    rather than rendering a share as a smooth quantity. A reader can count them.
+    That is section 1's fraction rule applied to form rather than to a label.
+    """
+    from lib import xg as xg_lib
+
+    frame = xg_lib.shots(match)
+    setpiece_seqs = {shot.seq for piece in pieces for shot in piece.shots}
+    frame["setpiece"] = frame["seq"].isin(setpiece_seqs)
+    live = frame[frame["penalty"] == 0]
+
+    x, y, width, height = rect
+    band = height * 0.26
+    pitch_h = height - band
+    handles = []
+
+    for index, team in enumerate((home, away)):
+        cell = [x + index * width / 2.0, y + band,
+                width / 2.0 - 0.012, pitch_h]
+        axis = figure.add_axes(cell)
+        pitch = _pitch(palette, linewidth=1.05 * scale)
+        pitch.draw(ax=axis)
+        mine = live[live["team"] == team]
+
+        # Quiet first, accent last, goals last of all.
+        order = mine.sort_values(["setpiece", "goal"])
+        for row in order.itertuples():
+            area = _area(row.npxg, scale)
+            if row.setpiece:
+                axis.scatter(row.y, row.x, s=area, marker="o",
+                             facecolor=palette["s1"], edgecolor=palette["s1"],
+                             linewidth=0, alpha=0.92, zorder=4)
+            else:
+                axis.scatter(row.y, row.x, s=area, marker="o",
+                             facecolor="none", edgecolor=palette["faint"],
+                             linewidth=1.0 * scale, zorder=2)
+            if row.goal:
+                axis.scatter(row.y, row.x, s=area * 2.3, marker="o",
+                             facecolor="none", edgecolor=palette["ink"],
+                             linewidth=1.3 * scale, zorder=5)
+
+        total = mine["npxg"].sum()
+        share = mine[mine["setpiece"]]["npxg"].sum()
+        # The fraction, never a bare percentage: this is eight shots.
+        axis.set_title(f"{share:.2f} of {total:.2f}", color=palette["ink"],
+                       fontsize=12.5 * scale, fontweight="bold", pad=6 * scale)
+
+    _threat_band(figure, [x, y + band * 0.10, width, band * 0.80], live, palette,
+                 home, away, scale)
+
+    handles = [
+        Line2D([], [], marker="o", linestyle="none", markersize=7 * scale,
+               markerfacecolor=palette["s1"], markeredgecolor=palette["s1"],
+               label="from a set-piece"),
+        Line2D([], [], marker="o", linestyle="none", markersize=7 * scale,
+               markerfacecolor="none", markeredgecolor=palette["faint"],
+               label="open play"),
+    ]
+    if int(live["goal"].sum()):
+        handles.append(Line2D([], [], marker="o", linestyle="none",
+                              markersize=9 * scale, markerfacecolor="none",
+                              markeredgecolor=palette["ink"], label="goal"))
+    for value in KEY_VALUES:
+        handles.append(Line2D([], [], marker="o", linestyle="none",
+                              markersize=(_area(value, scale) ** 0.5) * 0.62,
+                              markerfacecolor="none",
+                              markeredgecolor=palette["muted"],
+                              label=f"{value:.2f} npxG"))
+    return None, handles
+
+
+def threat_caption(match, pieces, home, away):
+    """The side that got most from dead balls, stated as a fraction."""
+    from lib import xg as xg_lib
+    frame = xg_lib.shots(match)
+    seqs = {shot.seq for piece in pieces for shot in piece.shots}
+    frame["setpiece"] = frame["seq"].isin(seqs)
+    live = frame[frame["penalty"] == 0]
+    best, share, total, count = None, 0.0, 0.0, 0
+    for team in (home, away):
+        mine = live[live["team"] == team]
+        sp = mine[mine["setpiece"]]
+        if sp["npxg"].sum() > share:
+            best, share = team, sp["npxg"].sum()
+            total, count = mine["npxg"].sum(), len(sp)
+    if not best or not count:
+        return "Neither side created a shot from a set-piece."
+    shots_word = "shot" if count == 1 else "shots"
+    return (f"{best} created {share:.2f} of their {total:.2f} npxG from "
+            f"set-pieces, off {count} {shots_word}.")
+
+
+def _threat_band(figure, rect, live, palette, home, away, scale):
+    """
+    Cumulative npxG, stepped, with the set-piece contribution in accent.
+
+    Stepped rather than smoothed: a shot changes the value at one moment, and
+    interpolating implies chance quality accrued continuously between them. The
+    band is what a share number cannot show -- three shots off one sequence read
+    as a cliff rather than as a decimal.
+    """
+    axis = figure.add_axes(rect)
+    axis.set_facecolor("none")
+    for side in ("top", "right", "left"):
+        axis.spines[side].set_visible(False)
+    axis.spines["bottom"].set_color(palette["line"])
+    axis.tick_params(colors=palette["faint"], labelsize=7.5 * scale, length=2)
+
+    ceiling = 0.0
+    for team, colour in ((home, palette["s2"]), (away, palette["s3"])):
+        mine = live[live["team"] == team].sort_values("minute")
+        if mine.empty:
+            continue
+        minutes, running, total = [0], [0.0], 0.0
+        for row in mine.itertuples():
+            total += row.npxg
+            minutes.append(row.minute); running.append(total)
+        minutes.append(95); running.append(total)
+        ceiling = max(ceiling, total)
+        axis.step(minutes, running, where="post", color=colour,
+                  lw=1.6 * scale, label=team)
+        # Labelled at the line's end rather than in the legend. A legend entry
+        # would make the reader carry a colour across the card; a label sits
+        # where the eye already is, and keeps the legend to the encodings that
+        # actually need explaining.
+        axis.text(96, total, f" {team}", color=colour, va="center", ha="left",
+                  fontsize=7.6 * scale, fontweight="bold")
+        for row in mine[mine.setpiece].itertuples():
+            axis.plot([row.minute], [running[minutes.index(row.minute)]],
+                      marker="o", markersize=3.4 * scale, color=palette["s1"],
+                      zorder=4)
+    axis.set_xlim(0, 128)
+    axis.set_ylim(0, max(ceiling * 1.18, 0.5))
+    axis.set_xticks([0, 45, 90])
+    axis.set_xlabel("minute", color=palette["faint"], fontsize=7.5 * scale)
+    axis.set_ylabel("cumulative npxG", color=palette["faint"],
+                    fontsize=7.5 * scale)
+
+
+# ---------------------------------------------------------------------------
 # visual 12 — team comparison
 
 

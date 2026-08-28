@@ -71,6 +71,13 @@ VISUALS: dict[str, dict] = {
         "rect": [0.085, 0.220, 0.845, 0.505],
         "heading": "Dead Balls Against the Scoreline",
     },
+    "threat": {
+        "label": "Set-Piece Threat",
+        "team": False,
+        "rect": [0.075, 0.150, 0.850, 0.560],
+        "legend_y": 0.055,
+        "heading": "Set-Piece Share of Threat",
+    },
     "comparison": {
         "label": "Comparison",
         "team": False,
@@ -226,13 +233,20 @@ def card(match, pieces, *, visual: str = "deliveries", team: str | None = None,
         caption = charts.timeline_caption(scoped, home, away)
     elif visual == "comparison":
         caption = charts.comparison_caption(scoped, home, away)
+    elif visual == "threat":
+        caption = charts.threat_caption(match, scoped, home, away)
     else:
         caption = readout.headline(pieces, team)
     figure.text(0.075, 0.851, caption, color=palette["muted"], fontsize=14,
                 va="top", ha="left", wrap=True)
 
     # the numbers
-    cells = readout.strip(pieces, team)[:6] if spec["team"] else _match_strip(pieces, home, away)
+    if spec["team"]:
+        cells = readout.strip(pieces, team)[:6]
+    elif visual == "threat":
+        cells = _threat_strip(match, pieces, home, away)
+    else:
+        cells = _match_strip(pieces, home, away)
     if cells:
         left, right = 0.075, 0.925
         step = (right - left) / len(cells)
@@ -258,6 +272,9 @@ def card(match, pieces, *, visual: str = "deliveries", team: str | None = None,
     elif visual == "chains":
         _, handles = charts.draw_chains(figure, rect, scoped, palette,
                                         scale=1.25, columns=2)
+    elif visual == "threat":
+        _, handles = charts.draw_threat(figure, rect, match, scoped, palette,
+                                        home, away, scale=1.35)
     elif visual == "comparison":
         # Rows are as tall as the frame divided by however many there are, so
         # a three-row match in a ten-row frame comes out as three fat slabs.
@@ -296,6 +313,42 @@ def card(match, pieces, *, visual: str = "deliveries", team: str | None = None,
     figure.savefig(buffer, format="png", dpi=100, facecolor=palette["bg"])
     plt.close(figure)
     return buffer.getvalue()
+
+
+def _threat_strip(match, pieces, home, away):
+    """
+    The threat card's own numbers, led by the thing it is about.
+
+    Section 7: ordered by payload, so a card that runs out of room loses a
+    goal count rather than the npxG it exists to show. Penalties appear only
+    when the match had one, and never inside an npxG total -- one spot kick is
+    worth more than most teams' entire set-piece output.
+    """
+    from lib import xg as xg_lib
+    frame = xg_lib.shots(match)
+    seqs = {shot.seq for piece in pieces for shot in piece.shots}
+    frame["setpiece"] = frame["seq"].isin(seqs)
+    live = frame[frame["penalty"] == 0]
+
+    def side(team):
+        mine = live[live["team"] == team]
+        return mine[mine["setpiece"]]["npxg"].sum(), mine["npxg"].sum(), \
+            int(mine["setpiece"].sum())
+
+    hs, ht, hn = side(home)
+    aside, at, an = side(away)
+    h = readout.summary(pieces, home)
+    a = readout.summary(pieces, away)
+    cells = [
+        (f"{hs:.2f}-{aside:.2f}", "Set-Piece npxG"),
+        (f"{ht:.2f}-{at:.2f}", "Total npxG"),
+        (f"{hn}-{an}", "Set-Piece Shots"),
+        (f"{h['goals']}-{a['goals']}", "Set-Piece Goals"),
+    ]
+    penalties = int(frame["penalty"].sum())
+    if penalties:
+        cells.append((str(penalties), "Penalties (Excl.)"))
+    return cells
 
 
 def _match_strip(pieces, home, away):

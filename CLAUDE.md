@@ -19,7 +19,13 @@ Stack: Streamlit. Lightweight, stateless, scrape on demand, nothing persisted pe
 - Every match is fetched fresh. Nothing is cached between visits.
 - No claims of tendency. Say "five of seven deliveries went near post", never "prefers the near post".
 - No percentages where the denominator is under ten. Use fractions.
-- No xG anywhere, in data or visuals. Danger is communicated through location and outcome only.
+- **xG and xT are allowed, as named models, under the rules below.** This reverses the original ban. That rule was written for an app whose entire subject was deliveries and first contacts, where danger reads from location and outcome alone. It stopped holding the moment the question became "how much of this team's threat came from dead balls", which is a question about quantity and cannot be answered with position.
+
+  What is served is **a specific model, never "xG" in the abstract**: fitted on 291 La Liga matches, 7,215 non-penalty shots, 681 goals. Out-of-fold log loss 0.2718 against a 0.3126 base rate, AUC 0.755, aggregate calibration 680.6 predicted against 681 scored. Agreed with FotMob to within 0.10 on both sides of the one match checked against it.
+
+  **It is trained on one league.** A Bundesliga or Champions League card is out of distribution until that is checked. `lib.xg.validated_for` names which competitions have been, and the honest options are to validate or to withhold — not to let the number appear anyway.
+
+  **Always npxG.** Penalties are excluded from both sides of every fraction. A penalty scores 0.804 from this model and a team's whole set-piece output in a match runs 0.3 to 0.9, so one spot kick would become the majority of "set-piece xG" and the headline would read "set pieces were 60% of their threat" when the honest translation is "they won a penalty" — a sentence about nothing the app is about. Penalties are counted and reported separately.
 - Sections render only when the match contains that content. Never render an empty panel.
 
 ---
@@ -164,6 +170,12 @@ This defines the ceiling. Trazado is delivery and outcome analysis with real sec
 
 ### Known traps
 
+- **An open-play xT grid cannot price a dead ball, and using it anyway looks fine.** Measured: eight corners in one match produced 0.91 of raw xT gain against 2.00 for that team's entire match across 439 positive passes — a corner valued at roughly 27 times an average pass. This is structural, not a tuning problem. The grid says the corner flag is a low-value cell *because in open play the ball being there is not threatening*; a free delivery from a stopped clock breaks that premise. It would also hand +0.22 to a corner headed straight out.
+
+  So `lib/xt.py` excludes dead-ball restarts from **both** sides: `totals` counts open-play passes only, and set-piece value is measured from the chain after the ball is live. That number is small by nature — second-phase possessions are short — and it is honest, which the inflated version is not.
+
+  The consequence to state plainly: **xT is the weaker of the two measures.** Set-piece threat should be read from npxG, where the model prices a set-piece shot on its own terms (`from_corner` carries a −0.41 coefficient). xT describes the open-play continuation and nothing more.
+
 - **One penalty leaves four events carrying the `Penalty` qualifier**: the foul won, the foul conceded, the keeper's `PenaltyFaced`, and the kick itself. Counting them all put the rate at 1.3 a match against a real-world 0.25–0.30. Only the event that is also a shot is the penalty.
 
 - **`isTouch` is False on `Aerial`, `BallRecovery` and `Challenge`.** Every aerial duel in the feed carries `isTouch = False`. A first-contact rule built on `isTouch` alone therefore walks straight past the duel that decided the set piece and attributes contact to whatever happened next. This shipped and went unnoticed because the verification script carried its own copy of the walk-forward logic and had the same blind spot — a checker that reimplements the code under test passes while the code is broken. Test the shipped function.
@@ -224,6 +236,18 @@ Origin markers make type readable at a glance: corner arc for corners, small squ
 
     The caption leads with the row a reader would actually lead with, not the biggest gap: "Set-Pieces" is a sum dominated by goal kicks, so on one real match a 25-to-20 row beat a 4-to-1 shot count on raw difference while saying far less. Goals, then shots, then corners. When no row is decisive it states the split rather than claiming one, and it never says "evenly split" — a 1-0 match had been described that way.
 13a. Goal kick map. Full pitch, always left to right. Goal kicks cannot share the delivery map — that map is the attacking half and these start on the other goal line. Landing point filled when the kicking side got there, hollow when they did not, ringed when contested in the air. Counted and drawn because a quarter of them are contested within three events, which is the same first-contact question the rest of the app asks.
+14. Set-piece share of threat. **Built.** Two half pitches, every shot in the match sized by npxG — area, not radius, since radius exaggerates by the square. Set-piece shots carry the accent and are drawn last; open play sits back as faint outlines, which is section 4's "quiet ones first" rule applied to shots rather than deliveries. Goals are ringed.
+
+    **The form is chosen by the sample size.** The claim rests on a handful of shots — eight on the match this was built against — so the chart shows every one of them rather than rendering a share as a smooth quantity. A donut or a stacked bar would look cleaner and would hide how few events built the number. A reader can count these. That is section 1's fraction rule applied to form, not just to labels.
+
+    For the same reason the headline reads `0.87 of 2.38`, never `36%`.
+
+    Beneath sits a stepped cumulative npxG band with set-piece contributions marked, because a share cannot show *when*. On the match this was built against, three shots came off one 52nd-minute sequence — a cliff in the band, and a decimal in the share.
+
+    Both teams on one card, never one card per team: a side with no set-piece shots would otherwise render an empty pitch, which section 1 forbids. Their empty half is the story instead.
+
+    The two lines are labelled at their ends rather than in the legend. A legend entry makes the reader carry a colour across the card; a label sits where the eye already is, and keeps the legend to the encodings that genuinely need explaining.
+
 13. Set piece ledger. Table of every dead ball: minute, team, type, taker, target zone, first contact, outcome. Backbone for the copyable text report.
 
 ---
@@ -386,7 +410,11 @@ Carries a line stating that Trazado holds nothing between visits so every match 
 
 ### Analysis
 
-Scroll layout. Delivery map as hero at the top, then first contact, then second phase, then the rest below the fold. Type filter available throughout.
+**There are no on-screen figures.** Every visual is reached through the export selector, which renders the card and shows it. That is one rendering path instead of two, and it means a visual has to earn a 4:5 card rather than existing only inside the app. Section 7 already said the card is a frame rather than a chart; this is that taken to its conclusion.
+
+What the screen carries in its own right is text: the per-team summary strips, the glossary, the ledger with its key, and the copyable report. The strips are what the cards are a picture of.
+
+The visual selector is a dropdown, not a row of radios. The list is long enough now that horizontal radios wrapped across two lines and pushed the card below the fold.
 
 ### Export panel
 
@@ -407,6 +435,8 @@ Row of type buttons, one per visual. Live preview of the branded card. Actions: 
 - Footer: "Data from Opta" left, "@mhassanfootball" right. The handle is **@mhassanfootball** — it goes on every graphic that leaves this app, so it is written down here rather than retyped from memory.
 - The card takes the app's theme. Choosing it separately was a second control to set before you could download something you were already looking at.
 - **Crests, not team names.** Names are long, inconsistently abbreviated by the feed, and push the header out of alignment; the crest says the same thing in a fixed box. Held at 75% opacity so it sits behind the type rather than competing with it. Falls back to names when an id has no badge.
+
+**Every export is named for what it is.** `trazado-{visual}-{subject}-{match date}-{export stamp}.png`, where subject is a team slug for a per-team card and `home-vs-away` for a match card. Downloads accumulate in one folder, and `trazado-threat.png` collides with the next match and tells you nothing a week later. The export stamp is UTC and marked `Z` — the app already labels fixture times in UTC, and an unmarked local timestamp on a file that gets shared is ambiguous in exactly the way a timestamp exists to prevent.
 
 The post button can only open a prefilled compose window. It cannot attach the image. Flow is download, compose, attach. Label it honestly.
 

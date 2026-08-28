@@ -170,6 +170,57 @@ def _phase_line(pieces) -> str:
     return f"{len(shots)} {word}, {second} of them second phase"
 
 
+def _threat_lines(match, pieces, team: str) -> list[str]:
+    """
+    How much of this side's threat came from dead balls.
+
+    Both measures are fractions with their totals shown, never a bare
+    percentage: the npxG share here rests on a handful of shots, and a lone
+    "36%" invites a precision the sample does not support.
+
+    npxG is the measure that means something. Penalties are excluded from both
+    sides of it -- one spot kick is worth more than most teams' entire
+    set-piece output, so including it would report "they won a penalty" as if
+    it said something about corners.
+
+    xT is reported for the open-play continuation only. An open-play threat
+    grid cannot price a dead ball, so the delivery itself contributes nothing;
+    see lib/xt.
+    """
+    try:
+        from . import xg as xg_lib, xt as xt_lib
+    except Exception:
+        return []
+    out: list[str] = []
+    try:
+        frame = xg_lib.shots(match)
+        seqs = {shot.seq for piece in pieces for shot in piece.shots}
+        frame["setpiece"] = frame["seq"].isin(seqs)
+        live = frame[(frame["penalty"] == 0) & (frame["team"] == team)]
+        total = float(live["npxg"].sum())
+        share = float(live[live["setpiece"]]["npxg"].sum())
+        count = int(live["setpiece"].sum())
+        if total:
+            shots_word = "shot" if count == 1 else "shots"
+            out.append(f"Set-piece npxG {share:.2f} of {total:.2f} "
+                       f"(from {count} {shots_word}; penalties excluded)")
+        pens = int(frame[(frame["team"] == team)]["penalty"].sum())
+        if pens:
+            out.append(f"Penalties {pens}, held out of every npxG figure above")
+    except Exception:
+        pass
+    try:
+        totals = xt_lib.totals(match)
+        chain = xt_lib.setpiece_chain(pieces).get(team, 0.0)
+        whole = totals.get(team, 0.0)
+        if whole:
+            out.append(f"Set-piece xT {chain:.2f} of {whole:.2f} open-play "
+                       f"(chain only; the delivery itself is not priced)")
+    except Exception:
+        pass
+    return out
+
+
 def report(match, pieces) -> str:
     """
     The whole match as text, ready to paste.
@@ -211,6 +262,8 @@ def report(match, pieces) -> str:
         if s["aerial_total"]:
             add(f"  Aerial duels won {s['aerial_won']}/{s['aerial_total']}")
         add(f"  {_phase_line(mine)}")
+        for line in _threat_lines(match, pieces, team):
+            add(f"  {line}")
         if s["goals"]:
             for piece in [p for p in mine if p.goal]:
                 scorer = next((x.player for x in piece.shots if x.goal), "")
