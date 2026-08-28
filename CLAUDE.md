@@ -267,11 +267,19 @@ The logo's vocabulary is the chart vocabulary. Keep them identical.
 One hue per set piece type, per theme. Every set passes all five checks on its own chart surface — OKLCH lightness band, chroma floor, colour-blind separation, normal-vision separation, and 3:1 contrast:
 
 ```
-vivid / moon   s1 #FE4431   s2 #06A89D   s3 #A86BFD
-newspaper      s1 #A8481C   s2 #0E9AA0   s3 #67459F
+vivid / moon   s1 #BC7D25   s2 #0AA480   s3 #9E77C9      (L 0.64, C 0.125)
+newspaper      s1 #9D671C   s2 #04896A   s3 #8463A8      (L 0.56, C 0.110)
 ```
 
 Found by searching OKLCH space, not picked by eye: every hand-picked set failed colour-blind separation, usually teal against pink under deuteranopia. Re-run the check before changing any of them.
+
+**Rebuilt once for restraint, and the reason is worth keeping.** The first set passed every contrast and colour-blind check and still looked cheap. The measurement that explains why: its series ran at chroma **0.225 / 0.114 / 0.210** — two at near-maximum saturation and one moderate, so the red and violet shouted while the teal receded. That imbalance was not a choice. Teal at that lightness **cannot exceed C 0.11 in sRGB**, so the other two were simply left wherever they landed.
+
+Evening the chroma costs colour-blind separation, because ΔE comes largely from chroma — and section 4 makes colour the *only* channel carrying set piece type, with no shape markers to fall back on, so separation cannot be traded away. The fix was to search for hues that reach **even** chroma while staying separable, rather than to desaturate the ones already chosen.
+
+The result is one hue family across all three themes — **ochre 70, jade 170, lavender 305** — differing only in lightness, with chroma even within a theme. Validated: deutan 10.8 / tritan 14.4 on dark, 9.4 / 12.6 on light, normal-vision floor and 3:1 contrast passing throughout.
+
+The lesson for next time: **a palette can pass every check and still be wrong.** The checks catch inaccessibility, not garishness. Uneven chroma is what garishness usually is, and it is measurable.
 
 This closes the section 9 question about extending Moon and Newspaper beyond one accent — they now carry three. A delivery that produced a **goal** is ringed at its landing point — without it the single most important delivery on the pitch is drawn identically to one that produced a blocked shot.
 
@@ -317,28 +325,30 @@ Three. Vivid is the app default. The export card follows whatever the app is set
 
 Streamlit's own widgets — radio, buttons, code blocks — render from `.streamlit/config.toml`, which is a fixed dark theme. They must be styled from the token block too, or they come out white-on-cream the moment anyone switches to Newspaper.
 
+Note `ink` is an off-white in every dark theme rather than `#FFFFFF`. Pure white on a near-black ground is harsh at body size and is one of the things that made the first set read as cheap; it costs nothing in contrast (15.9:1 against bg) to soften it.
+
 **Vivid** (default)
 ```
-bg #12121A   surface #1D1D2A   surface-dim #16161F
-line #33334A line-dim #26263A
-ink #FFFFFF  muted #9C9CB8     faint #5A5A72
-accent #00E0C6   accent-on #0A3D36   hot #FF3B6B   warn #FFD23F
+bg #101017   surface #1A1A23   surface-dim #14141B
+line #2E2E3C line-dim #222230
+ink #ECEAF2  muted #9A96A8     faint #696577
+accent #6FB8D9   accent-on #0B2733   hot #DD6F80   warn #D2A244
 ```
 
 **Moon**
 ```
-bg #0E1116   surface #171C24   surface-dim #12161C
-line #2A323D line-dim #1E242D
-ink #E4E8EE  muted #8A94A3     faint #5A6270
-accent #7FA8D9   accent-on #0B1A2B
+bg #0D1016   surface #161B22   surface-dim #11151B
+line #28303B line-dim #1D242D
+ink #E2E7EE  muted #8B95A4     faint #606977
+accent #7FA8D9   accent-on #0B1A2B   hot #D97F86   warn #C9A15A
 ```
 
 **Newspaper**
 ```
-bg #FBF6EA   surface #F3EAD6   surface-dim #EFE5CE
-line #DCCEB0 line-dim #E5DAC0
-ink #3A3125  muted #8A7B62     faint #A7997D
-accent #C98A3C   accent-on #2A1D08   hot #B0522A   warn #A8842F
+bg #FBF7EE   surface #F3EDE0   surface-dim #EEE7D7
+line #DAD1BF line-dim #E6DFCF
+ink #332F28  muted #736A5A     faint #908673
+accent #2F6B8F   accent-on #EAF1F5   hot #A64B33   warn #8C6B1F
 ```
 
 Known gap: Vivid carries three accents, Moon and Newspaper carry one. Any chart needing three encodings will run out of channels outside Vivid. Either extend the other two, or design every chart to need one accent only.
@@ -414,7 +424,13 @@ Carries a line stating that Trazado holds nothing between visits so every match 
 
 What the screen carries in its own right is text: the per-team summary strips, the glossary, the ledger with its key, and the copyable report. The strips are what the cards are a picture of.
 
-The visual selector is a dropdown, not a row of radios. The list is long enough now that horizontal radios wrapped across two lines and pushed the card below the fold.
+**Every card renders, one after another.** There is no selector. A dropdown asked the reader to know what they were looking for before they could see anything, on a page whose whole job is to show them. Order is deliberate: the match-level overviews first — comparison, threat, timeline — then the per-team detail they summarise.
+
+The **comparison leads**, because it is the summary every other card is a detail of. It carries no stat strip and no caption: the strip's numbers are rows in the table already, including set-piece and total npxG, and printing them twice on one card is just noise.
+
+The **glossary sits above the first card**, under its own heading, open rather than collapsed. It explains the vocabulary every visual below uses, so it belongs before them and not tucked under a strip halfway down.
+
+One card failing must not take the page with it. Nothing exercises these on screen any more, so an exception in a single visual would otherwise surface as a blank report rather than as one missing panel.
 
 ### Export panel
 

@@ -642,6 +642,14 @@ _ROWS = [
     ("Goals",           "goals",      None),
 ]
 
+# Continuous rows, appended after the counts. They are the numbers the strip
+# used to carry above the table; folding them in means the card holds one set
+# of figures rather than a band that restates the rows beneath it.
+_VALUE_ROWS = [
+    ("Set-Piece npxG", "setpiece_npxg"),
+    ("Total npxG", "total_npxg"),
+]
+
 
 def _row_values(stat, key, mode):
     """(numerator, denominator) for one side of one row; denominator None
@@ -657,7 +665,27 @@ def _row_values(stat, key, mode):
     return stat[key], None
 
 
-def comparison_rows(pieces, home, away):
+def _npxg_values(match, pieces, home, away):
+    """Set-piece and total npxG a side, penalties excluded from both."""
+    if match is None:
+        return {}
+    try:
+        from lib import xg as xg_lib
+    except Exception:
+        return {}
+    frame = xg_lib.shots(match)
+    seqs = {shot.seq for piece in pieces for shot in piece.shots}
+    frame["setpiece"] = frame["seq"].isin(seqs)
+    live = frame[frame["penalty"] == 0]
+    out = {}
+    for team in (home, away):
+        mine = live[live["team"] == team]
+        out[team] = {"setpiece_npxg": float(mine[mine["setpiece"]]["npxg"].sum()),
+                     "total_npxg": float(mine["npxg"].sum())}
+    return out
+
+
+def comparison_rows(pieces, home, away, match=None):
     """The rows this match actually supports, in order."""
     from lib import readout
     left, right = readout.summary(pieces, home), readout.summary(pieces, away)
@@ -674,11 +702,19 @@ def comparison_rows(pieces, home, away):
         elif not (h[0] or a[0]):
             continue
         out.append((label, mode, h, a))
+
+    values = _npxg_values(match, pieces, home, away)
+    if values:
+        for label, key in _VALUE_ROWS:
+            h = values.get(home, {}).get(key, 0.0)
+            a = values.get(away, {}).get(key, 0.0)
+            if h or a:
+                out.append((label, "value", (h, None), (a, None)))
     return out
 
 
 def draw_comparison(figure, rect, pieces, palette, home, away, scale=1.0,
-                    ids=None):
+                    ids=None, match=None):
     """
     Both sides' set-piece work, row by row, counted.
 
@@ -689,7 +725,7 @@ def draw_comparison(figure, rect, pieces, palette, home, away, scale=1.0,
     carrying the value -- which is what keeps a 3-against-2 row from reading
     like a rout.
     """
-    rows = comparison_rows(pieces, home, away)
+    rows = comparison_rows(pieces, home, away, match=match)
     axis = figure.add_axes(rect)
     axis.set_facecolor("none")
     axis.axis("off")
@@ -712,7 +748,11 @@ def draw_comparison(figure, rect, pieces, palette, home, away, scale=1.0,
     # straight through both bars.
     def cell(value, mode):
         numerator, denominator = value
-        return f"{numerator}/{denominator}" if mode == "fraction" else str(numerator)
+        if mode == "fraction":
+            return f"{numerator}/{denominator}"
+        if mode == "value":
+            return f"{numerator:.2f}"
+        return str(numerator)
 
     probes = [axis.text(0.5, 0, label, fontsize=10.2 * scale, alpha=0)
               for label, _, _, _ in rows]
@@ -758,7 +798,7 @@ def draw_comparison(figure, rect, pieces, palette, home, away, scale=1.0,
                 if numerator:
                     axis.add_patch(Rectangle((x, y - height / 2), length, height,
                                              facecolor=colour, lw=0))
-                shown = str(numerator)
+                shown = f"{numerator:.2f}" if mode == "value" else str(numerator)
             else:
                 # Outline is every attempt, fill is the ones won -- the same
                 # reading as a filled versus hollow marker anywhere else.

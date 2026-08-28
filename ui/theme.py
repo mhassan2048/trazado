@@ -15,38 +15,57 @@ to need one accent) stays open.
 
 from __future__ import annotations
 
+# Rebuilt for restraint, not for contrast -- the old set already passed every
+# contrast check and still looked cheap. The measurement that explains why:
+# Vivid's series ran at OKLCH chroma 0.225 / 0.114 / 0.210. Two at near-maximum
+# saturation and one moderate, so the red and the violet shouted while the teal
+# receded. That imbalance is what reads as garish, and it was not a choice --
+# teal at that lightness cannot exceed C 0.11 in sRGB, so the other two were
+# simply left wherever they landed.
+#
+# The fix is even chroma, which costs colour-blind separation, because ΔE comes
+# largely from chroma. Section 4 makes colour the *only* channel carrying set
+# piece type -- there are no shape markers to fall back on -- so separation
+# cannot be traded away. The resolution was to search for hues that reach even
+# chroma while staying separable, rather than to desaturate the existing ones.
+#
+# Result: one hue family across all three themes -- ochre 70, jade 170,
+# lavender 305 -- differing only in lightness, with chroma even within a theme.
+# Vivid/Moon sit at C 0.125, Newspaper at C 0.110 for its lighter surface.
+# Verified with the dataviz validator: lightness band, chroma floor, CVD
+# separation (deutan 10.8 / tritan 14.4 on dark, 9.4 / 12.6 on light),
+# normal-vision floor and 3:1 contrast all pass.
+#
+# Every token below also clears section 5: 4.5:1 for body text and 3:1 for
+# secondary text and chart lines, against BOTH bg and surface. `faint` is the
+# one that keeps failing when nudged -- it sat at 2.76:1 on surface during this
+# rebuild before being lifted -- so re-measure it after any change.
 THEMES: dict[str, dict[str, str]] = {
     "vivid": {
-        "bg": "#12121A", "surface": "#1D1D2A", "surface-dim": "#16161F",
-        "line": "#33334A", "line-dim": "#26263A",
-        "ink": "#FFFFFF", "muted": "#9C9CB8", "faint": "#7B7B96",
-        "accent": "#00E0C6", "accent-on": "#0A3D36",
-        "hot": "#FF3B6B", "warn": "#FFD23F",
-        "s1": "#FE4431", "s2": "#06A89D", "s3": "#A86BFD",
+        "bg": "#101017", "surface": "#1A1A23", "surface-dim": "#14141B",
+        "line": "#2E2E3C", "line-dim": "#222230",
+        "ink": "#ECEAF2", "muted": "#9A96A8", "faint": "#696577",
+        "accent": "#6FB8D9", "accent-on": "#0B2733",
+        "hot": "#DD6F80", "warn": "#D2A244",
+        "s1": "#BC7D25", "s2": "#0AA480", "s3": "#9E77C9",
         "chip": "#FFFFFF",
     },
     "moon": {
-        "bg": "#0E1116", "surface": "#171C24", "surface-dim": "#12161C",
-        "line": "#2A323D", "line-dim": "#1E242D",
-        "ink": "#E4E8EE", "muted": "#8A94A3", "faint": "#798391",
+        "bg": "#0D1016", "surface": "#161B22", "surface-dim": "#11151B",
+        "line": "#28303B", "line-dim": "#1D242D",
+        "ink": "#E2E7EE", "muted": "#8B95A4", "faint": "#606977",
         "accent": "#7FA8D9", "accent-on": "#0B1A2B",
-        "hot": "#7FA8D9", "warn": "#B9A97F",
-        "s1": "#FE4431", "s2": "#06A89D", "s3": "#A86BFD",
+        "hot": "#D97F86", "warn": "#C9A15A",
+        "s1": "#BC7D25", "s2": "#0AA480", "s3": "#9E77C9",
         "chip": "#FFFFFF",
     },
-    # Rebuilt for contrast. The previous cream put `faint` at 2.3:1 and the
-    # accent at 2.4:1 as text -- unreadable, and the kind of thing that only
-    # shows up when you measure it. Ink is near-black and the cream is cooled,
-    # which is also what the brand note asked for. Every value below clears
-    # 4.5:1 for body text and 3:1 for secondary text and chart lines, on both
-    # bg and surface.
     "newspaper": {
-        "bg": "#F7F5EE", "surface": "#EFEDE3", "surface-dim": "#E8E6DB",
-        "line": "#D3CFC0", "line-dim": "#E1DED1",
-        "ink": "#22201B", "muted": "#5C5749", "faint": "#837D6D",
-        "accent": "#8A5214", "accent-on": "#FBF7EF",
-        "hot": "#96331A", "warn": "#6E5A18",
-        "s1": "#A8481C", "s2": "#00909A", "s3": "#5B3D93",
+        "bg": "#FBF7EE", "surface": "#F3EDE0", "surface-dim": "#EEE7D7",
+        "line": "#DAD1BF", "line-dim": "#E6DFCF",
+        "ink": "#332F28", "muted": "#736A5A", "faint": "#908673",
+        "accent": "#2F6B8F", "accent-on": "#EAF1F5",
+        "hot": "#A64B33", "warn": "#8C6B1F",
+        "s1": "#9D671C", "s2": "#04896A", "s3": "#8463A8",
         "chip": "#FFFFFF",
     },
 }

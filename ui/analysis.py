@@ -55,7 +55,11 @@ def _glossary() -> str:
     items = "".join(
         f'<div class="tz-gl"><b>{term}</b> {meaning}</div>'
         for term, meaning in readout.GLOSSARY)
-    return f'<details class="tz-glossary"><summary>What these numbers mean</summary>{items}</details>'
+    # Rendered open under its own heading. It used to be a collapsed
+    # "what these numbers mean" tucked under the first strip; with a Glossary
+    # section of its own the disclosure widget is a second click to read a
+    # heading the reader already chose to look at.
+    return f'<div class="tz-glossary">{items}</div>'
 
 
 def _summary(pieces, team: str) -> str:
@@ -257,40 +261,52 @@ def _export_name(match, visual: str, team: str | None, suffix: str = "png") -> s
 
 def _export_panel(match, pieces, theme: str) -> None:
     """
-    Section 7's card, one visual at a time.
+    Every card, one after another.
 
-    Every visual is exportable, not just the delivery map -- a chart that can
-    only be seen inside the app is a chart nobody sends to anyone. Team-scoped
-    visuals render one card per side; match-scoped ones render a single card.
+    A selector meant the reader had to already know what they were looking for
+    before they could see anything, on a page whose whole job is to show them.
+    Rendering the lot costs more but the page is a report, not a browser.
+
+    Order is deliberate: the comparison first, because it is the overview every
+    other card is a detail of. Team-scoped visuals render one card per side;
+    match-scoped ones render a single card.
 
     The card takes the app's theme. Section 7 allowed choosing it separately;
     in practice that was a second control to set before you could download
     something you were already looking at.
     """
-    st.markdown('<div class="tz-sec">Export</div>', unsafe_allow_html=True)
+    home, away = match.meta["home_team"], match.meta["away_team"]
 
-    keys = list(VISUALS)
-    chosen = st.selectbox(
-        "Visual", keys, key="export_visual",
-        format_func=lambda k: VISUALS[k]["label"], label_visibility="collapsed")
+    for key, spec in VISUALS.items():
+        if spec["team"]:
+            teams = [t for t in (home, away) if any(p.team == t for p in pieces)]
+        else:
+            teams = [None]
+        if not teams:
+            continue
 
-    spec = VISUALS[chosen]
-    if spec["team"]:
-        teams = [t for t in (match.meta["home_team"], match.meta["away_team"])
-                 if any(p.team == t for p in pieces)]
-    else:
-        teams = [None]
-
-    columns = st.columns(len(teams)) if len(teams) > 1 else [st.container()]
-    for column, team in zip(columns, teams):
-        with column:
-            png = card(match, pieces, visual=chosen, team=team, theme=theme)
-            st.image(png, use_container_width=True)
-            who = team or match.meta["match_name"]
-            st.download_button(
-                f"Download {who}", data=png,
-                file_name=_export_name(match, chosen, team), mime="image/png",
-                use_container_width=True, key=f"dl_{chosen}_{who}")
+        st.markdown(f'<div class="tz-sec">{spec["label"]}</div>',
+                    unsafe_allow_html=True)
+        columns = st.columns(len(teams)) if len(teams) > 1 else [st.container()]
+        for column, team in zip(columns, teams):
+            with column:
+                try:
+                    png = card(match, pieces, visual=key, team=team, theme=theme)
+                except Exception as exc:
+                    # One card failing must not take the page with it. Nothing
+                    # exercises these on screen any more, so a break would
+                    # otherwise surface as a blank report.
+                    st.markdown(
+                        f'<p class="tz-note">{spec["label"]} could not be '
+                        f'rendered ({type(exc).__name__}).</p>',
+                        unsafe_allow_html=True)
+                    continue
+                st.image(png, use_container_width=True)
+                who = team or match.meta["match_name"]
+                st.download_button(
+                    f"Download {who}", data=png,
+                    file_name=_export_name(match, key, team), mime="image/png",
+                    use_container_width=True, key=f"dl_{key}_{who}")
 
 
 def render(match, theme: str) -> None:
@@ -323,8 +339,11 @@ def render(match, theme: str) -> None:
             continue
         st.markdown(f'<div class="tz-sec">{team}</div>', unsafe_allow_html=True)
         st.markdown(_summary(pieces, team), unsafe_allow_html=True)
-        if team == match.meta["home_team"]:
-            st.markdown(_glossary(), unsafe_allow_html=True)
+
+    # Ahead of the cards rather than tucked under the first strip: it explains
+    # the vocabulary every visual below uses, so it belongs before them.
+    st.markdown('<div class="tz-sec">Glossary</div>', unsafe_allow_html=True)
+    st.markdown(_glossary(), unsafe_allow_html=True)
 
     _export_panel(match, pieces, theme)
 

@@ -37,6 +37,27 @@ TITLE_ALPHA = 0.70
 # Each visual declares whether it is about one team or the whole match, where
 # its plot sits on the card, and how to caption it.
 VISUALS: dict[str, dict] = {
+    "comparison": {
+        "label": "Comparison",
+        "team": False,
+        # Taller than the others: this card carries no strip and no caption,
+        # so the band starts just under the title instead of below a rule.
+        "rect": [0.075, 0.150, 0.850, 0.700],
+        "heading": "Team Comparison",
+    },
+    "threat": {
+        "label": "Set-Piece Threat",
+        "team": False,
+        "rect": [0.075, 0.150, 0.850, 0.560],
+        "legend_y": 0.055,
+        "heading": "Set-Piece Share of Threat",
+    },
+    "timeline": {
+        "label": "Timeline",
+        "team": False,
+        "rect": [0.085, 0.220, 0.845, 0.505],
+        "heading": "Dead Balls Against the Scoreline",
+    },
     "deliveries": {
         "label": "Delivery Map",
         "team": True,
@@ -64,25 +85,6 @@ VISUALS: dict[str, dict] = {
         "rect": [0.060, 0.278, 0.880, 0.432],
         "legend_y": 0.200,
         "heading": "Goal Kicks",
-    },
-    "timeline": {
-        "label": "Timeline",
-        "team": False,
-        "rect": [0.085, 0.220, 0.845, 0.505],
-        "heading": "Dead Balls Against the Scoreline",
-    },
-    "threat": {
-        "label": "Set-Piece Threat",
-        "team": False,
-        "rect": [0.075, 0.150, 0.850, 0.560],
-        "legend_y": 0.055,
-        "heading": "Set-Piece Share of Threat",
-    },
-    "comparison": {
-        "label": "Comparison",
-        "team": False,
-        "rect": [0.075, 0.200, 0.850, 0.530],
-        "heading": "Team Comparison",
     },
 }
 
@@ -223,7 +225,11 @@ def card(match, pieces, *, visual: str = "deliveries", team: str | None = None,
         figure.text(0.075, 0.888, (f"{team} — " if spec["team"] else "") + heading,
                     color=palette["ink"], fontsize=32, fontweight="bold",
                     va="center", ha="left", alpha=TITLE_ALPHA)
-    if visual == "aerials":
+    if visual == "comparison":
+        # The table already holds every number the strip carried and the
+        # caption restated, so both are dropped rather than printed twice.
+        caption = ""
+    elif visual == "aerials":
         caption = charts.aerial_caption(scoped)
     elif visual == "goalkicks":
         caption = charts.goal_kick_caption(scoped, team)
@@ -241,7 +247,9 @@ def card(match, pieces, *, visual: str = "deliveries", team: str | None = None,
                 va="top", ha="left", wrap=True)
 
     # the numbers
-    if spec["team"]:
+    if visual == "comparison":
+        cells = []
+    elif spec["team"]:
         cells = readout.strip(pieces, team)[:6]
     elif visual == "threat":
         cells = _threat_strip(match, pieces, home, away)
@@ -279,7 +287,7 @@ def card(match, pieces, *, visual: str = "deliveries", team: str | None = None,
         # Rows are as tall as the frame divided by however many there are, so
         # a three-row match in a ten-row frame comes out as three fat slabs.
         # Hold the row height instead and let the block shrink upward.
-        count = len(charts.comparison_rows(scoped, home, away))
+        count = len(charts.comparison_rows(scoped, home, away, match=match))
         # The crest band is part of the axis, so it has to be part of the
         # height too -- otherwise the rows compress to make room for it and
         # leave the slack sitting under the table instead.
@@ -291,7 +299,7 @@ def card(match, pieces, *, visual: str = "deliveries", team: str | None = None,
         # strip above the legend on a match with few rows.
         _, handles = charts.draw_comparison(
             figure, [x, y + (h - used) / 2, w, used], scoped, palette,
-            home, away, scale=1.45, ids=ids)
+            home, away, scale=1.45, ids=ids, match=match)
     else:
         from lib.setpieces import match_goals
         _, handles = charts.draw_timeline(
