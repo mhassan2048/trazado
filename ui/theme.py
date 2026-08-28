@@ -127,9 +127,9 @@ THEMES: dict[str, dict[str, str]] = {
         "bg": "#FBF7EE", "surface": "#F3EDE0", "surface-dim": "#EEE7D7",
         "line": "#DAD1BF", "line-dim": "#E6DFCF",
         "ink": "#332F28", "muted": "#736A5A", "faint": "#908673",
-        "accent": "#111111", "accent-on": "#F5F2EA",
+        "accent": "#4169E1", "accent-on": "#EDF1FC",
         "hot": "#A64B33", "warn": "#8C6B1F",
-        "s1": "#8C867A", "s2": "#9F8164", "s3": "#768A9C",
+        "s1": "#4169E1", "s2": "#878787", "s3": "#9F8164",
         "chip": "#FFFFFF",
     },
 }

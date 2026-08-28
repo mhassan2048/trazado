@@ -269,7 +269,7 @@ One hue per set piece type, per theme. Every set passes all five checks on its o
 ```
 vivid       s1 #FF1493   s2 #32CD32   s3 #1299DE   accent #00E5FF   deeppink / limegreen / azure, cyan
 moon        s1 #87CEEB   s2 #C9CDD3   s3 #D9A05B   accent #FFFFFF   skyblue / light grey / sand, white
-newspaper   s1 #8C867A   s2 #9F8164   s3 #768A9C   accent #111111   grey / coffee / slate, black
+newspaper   s1 #4169E1   s2 #878787   s3 #9F8164   accent #4169E1   royalblue / grey / coffee
 ```
 
 Found by searching OKLCH space, not picked by eye: every hand-picked set failed colour-blind separation, usually teal against pink under deuteranopia. Re-run the check before changing any of them.
@@ -286,7 +286,7 @@ The result is one hue family across all three themes — **ochre 70, jade 170, l
 
 **These are hand-picked, not searched.** The sets above were chosen directly and do not clear the validator's colour-blind separation — deeppink against limegreen is a red-green pair, and Moon's skyblue against light grey separates mainly by chroma. That is a deliberate override of the rule below, recorded rather than hidden. If a colour-blind reader ever has to use this, the palettes need re-deriving.
 
-Newspaper's greys were darkened on the way in: "light grey" and "light coffee" measured 1.97:1 and 2.27:1 on cream, well under the 3:1 a chart mark needs, and would have repeated the invisible-tone-ramp failure. They sit at the lightest value that clears 3:1.
+Newspaper's grey is darkened on the way in. CSS `lightgrey` measures **1.28:1** against the cream surface, nowhere near the 3:1 a chart mark needs, and would repeat the invisible-tone-ramp failure. It sits at the lightest value that clears 3:1, so it reads as mid grey rather than light. Any "light" colour named for this theme gets the same treatment — cream is a light ground and there is no room above it.
 
 **Run the validator with `--pairs all`.** Its default compares only *adjacent* pairs, which will happily pass a palette whose first and third colours are nearly identical — and did. Under all-pairs checking most of what looked fine collapses: copper/teal/periwinkle scores 7.9, below the floor, and of nine hand-picked hue families only rose/olive/azure survived, at 11.7 against 7.9 for the next best. Every earlier number in this section was measured the weaker way.
 
