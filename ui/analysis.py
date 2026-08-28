@@ -1,9 +1,12 @@
 """
 The analysis screen.
 
-Scroll layout, hero first. Every section is conditional: a match with no
-throw-ins into the box renders no throw-in row, and a match with no set piece
-goals renders no goal card. An empty panel is never drawn.
+Text and cards, nothing else. The screen draws no figures of its own: every
+visual is reached through the export card, which is the one rendering path.
+
+What lives here in its own right is the glossary, the ledger with its key, and
+the copyable report. Sections stay conditional -- a match with no throw-ins into
+the box renders no throw-in row, and an empty panel is never drawn.
 """
 
 from __future__ import annotations
@@ -15,17 +18,11 @@ import streamlit as st
 from lib import badges, readout, setpieces
 from lib.setpieces import CORNER, FREEKICK, GOAL_KICK, THROW_IN, PENALTY
 
-from .charts import (aerial_zones, chain_caption, chainable, chains,
-                     comparison, comparison_rows,
-                     delivery_map, goal_kick_caption as charts_caption,
-                     goal_kicks, timeline, to_png)
+# Nothing is imported from .charts any more. Every visual is reached through
+# the export card, which builds its own figure -- the screen draws none.
 from .export import VISUALS, card
 from .theme import THEMES as ALL_THEMES
 from .theme import THEMES
-
-KIND_LABEL = {CORNER: "corners", FREEKICK: "free kicks",
-              THROW_IN: "throw-ins", PENALTY: "penalties",
-              GOAL_KICK: "goal kicks"}
 
 
 def _crest(team_id: int, name: str) -> str:
@@ -60,20 +57,6 @@ def _glossary() -> str:
     # section of its own the disclosure widget is a second click to read a
     # heading the reader already chose to look at.
     return f'<div class="tz-glossary">{items}</div>'
-
-
-def _summary(pieces, team: str) -> str:
-    """
-    The stat strip, from the same source as the export card.
-
-    It used to build its own cells with its own labels, which meant the screen
-    and the card could disagree about what a number was called -- and did.
-    """
-    cells = readout.strip(pieces, team)
-    inner = "".join(f'<div class="tz-stat"><div class="tz-stat-n">{value}</div>'
-                    f'<div class="tz-stat-l">{label}</div></div>'
-                    for value, label in cells)
-    return f'<div class="tz-strip">{inner}</div>'
 
 
 BADGE = {CORNER: "CO", FREEKICK: "FK", THROW_IN: "TI", PENALTY: "PK",
@@ -329,19 +312,12 @@ def render(match, theme: str) -> None:
                     unsafe_allow_html=True)
         return
 
-    # The per-team summary strips stay: they are text, and they are what the
-    # export panel below is a picture of. Everything that used to be rendered
-    # here as its own on-screen figure is now reached through the export
-    # selector -- one rendering path instead of two, and every visual has to
-    # earn a card rather than existing only inside the app.
-    for team in (match.meta["home_team"], match.meta["away_team"]):
-        if not any(p.team == team for p in pieces):
-            continue
-        st.markdown(f'<div class="tz-sec">{team}</div>', unsafe_allow_html=True)
-        st.markdown(_summary(pieces, team), unsafe_allow_html=True)
-
-    # Ahead of the cards rather than tucked under the first strip: it explains
-    # the vocabulary every visual below uses, so it belongs before them.
+    # No on-screen summary strips. Every card below already carries its own,
+    # so printing them here first said the same numbers twice before the reader
+    # reached anything they could actually take away.
+    #
+    # The glossary stays, and stays first: it explains the vocabulary every
+    # card underneath uses.
     st.markdown('<div class="tz-sec">Glossary</div>', unsafe_allow_html=True)
     st.markdown(_glossary(), unsafe_allow_html=True)
 

@@ -443,7 +443,7 @@ Carries a line stating that Trazado holds nothing between visits so every match 
 
 **There are no on-screen figures.** Every visual is reached through the export selector, which renders the card and shows it. That is one rendering path instead of two, and it means a visual has to earn a 4:5 card rather than existing only inside the app. Section 7 already said the card is a frame rather than a chart; this is that taken to its conclusion.
 
-What the screen carries in its own right is text: the per-team summary strips, the glossary, the ledger with its key, and the copyable report. The strips are what the cards are a picture of.
+What the screen carries in its own right is text: the glossary, the ledger with its key, and the copyable report. The per-team summary strips are gone — every card already carries its own, so printing them on the page first said the same numbers twice before the reader reached anything they could take away.
 
 **Every card renders, one after another.** There is no selector. A dropdown asked the reader to know what they were looking for before they could see anything, on a page whose whole job is to show them. Order is deliberate: the match-level overviews first — comparison, threat, timeline — then the per-team detail they summarise.
 
