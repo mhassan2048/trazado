@@ -269,7 +269,8 @@ One hue per set piece type, per theme. Every set passes all five checks on its o
 ```
 vivid       s1 #C37551   s2 #11A195   s3 #8582CC   Copper / Teal / Periwinkle
 moon        s1 #CB7A55   s2 #12A89B   s3 #8B88D5   the same family, lighter
-newspaper   s1 #AA486B   s2 #5D7B05   s3 #2272B9   Rose / Olive / Azure
+newspaper   s1 #130E0B   s2 #552C0A   s3 #727C86   black / coffee / grey
+            accent #123865  navy
 ```
 
 Found by searching OKLCH space, not picked by eye: every hand-picked set failed colour-blind separation, usually teal against pink under deuteranopia. Re-run the check before changing any of them.
@@ -283,6 +284,14 @@ The result is one hue family across all three themes — **ochre 70, jade 170, l
 **Each theme names its own set.** An earlier version used identical hexes for Vivid and Moon, which made the two themes indistinguishable in the one channel that carries meaning. They now differ by design intent: Vivid runs boldest, Moon lighter and cooler for its ground, Newspaper pitched deeper to hold a light surface.
 
 **Some triples are impossible, and it is worth knowing which.** Anything pairing a red with a green scores deutan 0.0–2.1 and is unusable — Coral/Sage/Slate, Gold/Emerald/Plum and Clay/Forest/Mauve were all searched and discarded. With no shape markers to fall back on there is no secondary encoding to rescue them.
+
+**Newspaper is a tone ramp, and it deliberately fails two checks.** Black sits at L 0.17 and every series colour reads as grey, so the lightness band and the chroma floor both FAIL. Those two exist to guarantee separation by *hue*; this palette separates by *tone*, which is how newsprint has always worked and which colour blindness cannot touch.
+
+The checks that measure the actual goal pass, and by a wider margin than any hue set found for this theme: CVD separation **15.5 protan / 18.9 tritan against 9.3 / 8.0**, normal-vision floor **18.4 against 9.3**, contrast passing throughout. It is more readable to colour-blind readers, not less. Do not "fix" the two failures — they are the design.
+
+Navy is the only member with real chroma, which is exactly why it works as the accent: in an otherwise monochrome palette one coloured mark reads as *something happened here* rather than as a fourth set piece type.
+
+Known tension: `grey` sits ΔE 6.5 from `faint`. They are never the same kind of mark — grey fills series marks, faint draws small secondary text and hollow outlines — but do not put them side by side as fills.
 
 **The accent is checked against the series, not only against the ground.** It means "led to a shot" and nothing else, so it must not read as a fourth type. The blue accents that preceded the current ones sat ΔE 6.5 from Newspaper's azure and 8.5 from Moon's periwinkle — close enough to pass for a type colour, and only visible when measured. Gold on the dark themes and violet on Newspaper clear every series by ΔE 15.8 or better. `hot` and `warn` are exempt because neither ever appears on a chart beside the series; they live on the chooser and the logo mark.
 

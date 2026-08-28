@@ -88,13 +88,35 @@ THEMES: dict[str, dict[str, str]] = {
         "s1": "#CB7A55", "s2": "#12A89B", "s3": "#8B88D5",
         "chip": "#FFFFFF",
     },
+    # Newspaper is a tone ramp, not a hue wheel, and it deliberately fails two
+    # of the validator's checks. Worth reading before anyone "fixes" it.
+    #
+    # Lightness band and chroma floor both FAIL: black sits at L 0.17 and every
+    # series colour reads as grey. Those two checks exist to guarantee that
+    # colours separate by *hue*. This palette separates by *tone* instead --
+    # which is how newsprint has always worked, and which colour blindness
+    # cannot touch.
+    #
+    # The checks that measure the actual goal all pass, and by a wider margin
+    # than any hue-based set found for this theme: CVD separation 15.5 protan /
+    # 18.9 tritan against 9.3 / 8.0 for the best hue palette, normal-vision
+    # floor 18.4 against 9.3, contrast passing throughout. So this is more
+    # readable to colour-blind readers, not less.
+    #
+    # Navy is the only member with real chroma, which is what makes it work as
+    # the accent: in an otherwise monochrome palette the one coloured mark reads
+    # as "something happened here" rather than as a fourth set piece type.
+    #
+    # One known tension: `grey` sits ΔE 6.5 from `faint`. They are never the
+    # same kind of mark -- grey fills series marks, faint draws small secondary
+    # text and hollow outlines -- but do not put them side by side as fills.
     "newspaper": {
         "bg": "#FBF7EE", "surface": "#F3EDE0", "surface-dim": "#EEE7D7",
         "line": "#DAD1BF", "line-dim": "#E6DFCF",
         "ink": "#332F28", "muted": "#736A5A", "faint": "#908673",
-        "accent": "#5F3389", "accent-on": "#F1EAF6",
+        "accent": "#123865", "accent-on": "#EAF0F7",
         "hot": "#A64B33", "warn": "#8C6B1F",
-        "s1": "#AA486B", "s2": "#5D7B05", "s3": "#2272B9",
+        "s1": "#130E0B", "s2": "#552C0A", "s3": "#727C86",
         "chip": "#FFFFFF",
     },
 }
