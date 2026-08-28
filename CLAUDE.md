@@ -267,7 +267,7 @@ The logo's vocabulary is the chart vocabulary. Keep them identical.
 One hue per set piece type, per theme. Every set passes all five checks on its own chart surface — OKLCH lightness band, chroma floor, colour-blind separation, normal-vision separation, and 3:1 contrast:
 
 ```
-vivid       s1 #D3658F   s2 #819C23   s3 #1299DE   accent #62D4C8   (L 0.65, C 0.145)
+vivid       s1 #D3658F   s2 #759F31   s3 #1299DE   accent #62D4C8   (L 0.65, C 0.145)
 moon        s1 #D27295   s2 #88A142   s3 #3F9EDA   accent #66DAD7   (L 0.67, C 0.125)
 newspaper   s1 #A54D6E   s2 #637916   s3 #0776AE   accent #003636   (L 0.54, C 0.122)
 ```
@@ -287,6 +287,8 @@ The result is one hue family across all three themes — **ochre 70, jade 170, l
 **Run the validator with `--pairs all`.** Its default compares only *adjacent* pairs, which will happily pass a palette whose first and third colours are nearly identical — and did. Under all-pairs checking most of what looked fine collapses: copper/teal/periwinkle scores 7.9, below the floor, and of nine hand-picked hue families only rose/olive/azure survived, at 11.7 against 7.9 for the next best. Every earlier number in this section was measured the weaker way.
 
 **Thin tapered strokes need chroma; this is the constraint that outranks taste.** A near-monochrome Newspaper — black, coffee, grey — separated beautifully by tone, passed everything that mattered, and was unreadable in practice. A comet fades from solid to nothing, and a low-chroma stroke has no fade left to give. Chroma is floored at 0.12 for that reason alone.
+
+**How green the middle slot can get, measured.** Sweeping it from olive toward lime collapses tritan separation against the azure: 10.6 at h122, 8.7 at h128, 4.5 at h145, and CSS limegreen fails outright. Nor does rearranging help — holding a true lime in the middle and searching every position for the other two returned nothing above the floor. Vivid reaches **h128**, the greenest that clears; Moon and Newspaper are already at their own limit of h122 and cannot follow, so the middle hue differs slightly by theme.
 
 **Olive rather than green is not a preference.** Rose against green is the classic deuteranopia confusion. h122 is as far toward green as the middle slot can travel and still be seen by a red-green colour-blind reader; anything greener fails.
 
@@ -462,6 +464,7 @@ Row of type buttons, one per visual. Live preview of the branded card. Actions: 
 - 4:5 portrait, around 1080 by 1350. Takes more feed space than 16:9 and suits a tall pitch graphic.
 - Rendered separately from the on screen figure. Different padding, different type sizes, and the branding block exists only on the export.
 - Header: mark and wordmark left, match identity and competition right.
+- **One left margin and one right margin run the whole height of the card**, and they are constants (`MARGIN_L`, `MARGIN_R`) rather than literals repeated per element. They were literals, and when the caption was removed nothing recomputed around them: the heading sat at 0.150 on team cards because the crest was to its left, while the strip beneath it stayed at 0.075, so title and numbers did not share an edge — and only on some cards. The team crest now sits at the *right* end of the title line, mirroring the header above it. The away crest is placed by its centre, so it is inset half its width to finish on the margin rather than overshooting it.
 - Title. **No caption.** A sentence under the title restated what the chart already showed, and on a card whose whole argument is the visual it read as hedging. The title names the thing; the graphic makes the case. The band it occupied went to the visual.
 - **Header text is Title Case.** Not shouting caps, not lowercase.
 - **Every element gets reserved space.** Charts are laid out in bands measured from the data, never as a fraction of the axis with labels dropped wherever they land — that put team names straight through the tick bars and clipped a 90th-minute goal off the right edge. Text near an axis edge anchors away from it.

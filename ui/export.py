@@ -114,6 +114,13 @@ def _mark(figure, x, y, size, palette):
     return axis
 
 
+# One left margin for the whole card, and one vertical rhythm. These were
+# scattered as literals, which is how the title drifted off the strip's edge
+# when the caption was removed and nothing recomputed around it.
+MARGIN_L, MARGIN_R = 0.075, 0.925
+TITLE_Y = 0.882
+STRIP_VALUE_Y, STRIP_LABEL_Y, STRIP_RULE_Y = 0.836, 0.812, 0.793
+
 CREST_ALPHA = 0.75
 
 
@@ -155,7 +162,7 @@ def _team_ids(match):
 
 
 def _rule(figure, y, palette, alpha=1.0):
-    figure.add_artist(Line2D([0.075, 0.925], [y, y], transform=figure.transFigure,
+    figure.add_artist(Line2D([MARGIN_L, MARGIN_R], [y, y], transform=figure.transFigure,
                              color=palette["line"], lw=1.1, alpha=alpha))
 
 
@@ -189,42 +196,52 @@ def card(match, pieces, *, visual: str = "deliveries", team: str | None = None,
 
     figure = plt.figure(figsize=(WIDTH, HEIGHT), facecolor=palette["bg"])
 
-    # header
-    _mark(figure, 0.073, 0.932, 0.054, palette)
-    figure.text(0.142, 0.951, "trazado", color=palette["ink"], fontsize=25,
-                fontweight="bold", va="center", ha="left")
+    # Header, on the same two margins as everything below it. The away crest is
+    # placed by its centre, so it sits half its width inside MARGIN_R -- it used
+    # to run to 0.946 while the line of text beneath it stopped at 0.925, which
+    # left the header's right edge ragged against the rest of the card.
+    CREST = 0.038
+    _mark(figure, MARGIN_L, 0.932, 0.054, palette)
+    figure.text(MARGIN_L + 0.067, 0.951, "trazado", color=palette["ink"],
+                fontsize=25, fontweight="bold", va="center", ha="left")
     ids = _team_ids(match)
     badges.warm(ids.values())
     score = str(meta.get("score", "") or "")
+    away_x = MARGIN_R - CREST / 2.0
     # Wider gaps than the type strictly needs: a monospaced face sets the same
     # score noticeably wider than a proportional one, and the header must not
     # have to be re-tuned every time the typeface changes.
-    figure.text(0.874, 0.963, score, color=palette["ink"], fontsize=16,
-                va="center", ha="center")
-    drew = (_crest(figure, ids.get(home, 0), 0.802, 0.963, 0.038)
-            and _crest(figure, ids.get(away, 0), 0.946, 0.963, 0.038))
+    home_x = away_x - 0.144
+    figure.text((home_x + away_x) / 2.0, 0.963, score, color=palette["ink"],
+                fontsize=16, va="center", ha="center")
+    drew = (_crest(figure, ids.get(home, 0), home_x, 0.963, CREST)
+            and _crest(figure, ids.get(away, 0), away_x, 0.963, CREST))
     if not drew:
         # No badge for one of the ids: names rather than a gap.
-        figure.text(0.925, 0.963, f"{home}  {score}  {away}",
+        figure.text(MARGIN_R, 0.963, f"{home}  {score}  {away}",
                     color=palette["ink"], fontsize=14, va="center", ha="right")
     identity = [x for x in (meta.get("competition"), meta.get("venue"),
                             str(meta.get("start_date") or "")[:10]) if x]
-    figure.text(0.925, 0.936, " · ".join(identity), color=palette["muted"],
+    figure.text(MARGIN_R, 0.936, " · ".join(identity), color=palette["muted"],
                 fontsize=11.5, va="center", ha="right")
     _rule(figure, 0.926, palette)
 
-    # title and the one fact worth leading with
-    # The title block sits above the caption with real clearance. The crest is
-    # centred on the heading, and the caption starts below the crest's lower
-    # edge -- not level with the heading, which put the badge through the text.
+    # Title, always on the same left margin as everything under it.
+    #
+    # The crest used to sit to the LEFT of the heading, which pushed the text in
+    # to x=0.150 on team cards while the strip below stayed at 0.075 -- so the
+    # title and the numbers it introduced did not share an edge, and only on
+    # some cards. The crest now sits at the right end of the title line, which
+    # mirrors the header above it (mark left, crests right) and leaves one
+    # margin running the height of the card.
     heading = spec["heading"]
-    if spec["team"] and _crest(figure, ids.get(team, 0), 0.106, 0.888, 0.060):
-        figure.text(0.150, 0.888, heading, color=palette["ink"], fontsize=32,
-                    fontweight="bold", va="center", ha="left", alpha=TITLE_ALPHA)
-    else:
-        figure.text(0.075, 0.888, (f"{team} — " if spec["team"] else "") + heading,
-                    color=palette["ink"], fontsize=32, fontweight="bold",
-                    va="center", ha="left", alpha=TITLE_ALPHA)
+    figure.text(MARGIN_L, TITLE_Y, heading, color=palette["ink"], fontsize=32,
+                fontweight="bold", va="center", ha="left", alpha=TITLE_ALPHA)
+    if spec["team"]:
+        if not _crest(figure, ids.get(team, 0), MARGIN_R - 0.030, TITLE_Y, 0.060):
+            # No badge for this side, so the name carries the identification.
+            figure.text(MARGIN_R, TITLE_Y, team, color=palette["muted"],
+                        fontsize=15, va="center", ha="right")
     # No captions. A sentence under the title restated what the chart already
     # showed, and on a card whose whole argument is the visual it read as
     # hedging. The title names the thing; the graphic makes the case.
@@ -239,15 +256,14 @@ def card(match, pieces, *, visual: str = "deliveries", team: str | None = None,
     else:
         cells = _match_strip(pieces, home, away)
     if cells:
-        left, right = 0.075, 0.925
-        step = (right - left) / len(cells)
+        step = (MARGIN_R - MARGIN_L) / len(cells)
         for index, (value, label) in enumerate(cells):
-            x = left + step * index
-            figure.text(x, 0.842, value, color=palette["ink"], fontsize=25,
+            x = MARGIN_L + step * index
+            figure.text(x, STRIP_VALUE_Y, value, color=palette["ink"], fontsize=25,
                         fontweight="bold", va="center", ha="left")
-            figure.text(x, 0.819, label, color=palette["faint"], fontsize=9.5,
+            figure.text(x, STRIP_LABEL_Y, label, color=palette["faint"], fontsize=9.5,
                         va="center", ha="left")
-        _rule(figure, 0.800, palette, alpha=0.6)
+        _rule(figure, STRIP_RULE_Y, palette, alpha=0.6)
 
     # the visual, drawn by the same code the screen uses, at card scale
     rect = spec["rect"]
@@ -295,9 +311,9 @@ def card(match, pieces, *, visual: str = "deliveries", team: str | None = None,
 
     # footer
     _rule(figure, 0.050, palette)
-    figure.text(0.075, 0.031, FOOTER_LEFT, color=palette["muted"], fontsize=12,
+    figure.text(MARGIN_L, 0.031, FOOTER_LEFT, color=palette["muted"], fontsize=12,
                 va="center", ha="left")
-    figure.text(0.925, 0.031, FOOTER_RIGHT, color=palette["muted"], fontsize=12,
+    figure.text(MARGIN_R, 0.031, FOOTER_RIGHT, color=palette["muted"], fontsize=12,
                 va="center", ha="right")
 
     buffer = io.BytesIO()

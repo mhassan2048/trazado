@@ -84,6 +84,14 @@ from __future__ import annotations
 # because a comet fades from solid to nothing and a low-chroma stroke has no
 # fade left to give. Chroma is floored at 0.12 here for that reason alone.
 #
+# Asked for limegreen; this is as close as three colours can get. Sweeping the
+# middle slot from olive toward lime collapses tritan separation against the
+# azure -- 10.6 at h122, 4.5 at h145 -- and CSS limegreen fails outright. No
+# rearrangement of the other two rescues it: holding a true lime in the middle
+# and searching every position for the other two returned nothing above the
+# floor. Vivid reaches h128, the greenest that clears; Moon and Newspaper are
+# already at their own limit of h122 and cannot follow.
+#
 # Olive rather than green is not a preference. Rose against green is the classic
 # deuteranopia confusion; h122 is as far toward green as the middle slot can go
 # and still be seen by a red-green colour-blind reader.
@@ -103,7 +111,7 @@ THEMES: dict[str, dict[str, str]] = {
         "ink": "#ECEAF2", "muted": "#9A96A8", "faint": "#696577",
         "accent": "#62D4C8", "accent-on": "#06302C",
         "hot": "#E0785E", "warn": "#D2A244",
-        "s1": "#D3658F", "s2": "#819C23", "s3": "#1299DE",
+        "s1": "#D3658F", "s2": "#759F31", "s3": "#1299DE",
         "chip": "#FFFFFF",
     },
     "moon": {
