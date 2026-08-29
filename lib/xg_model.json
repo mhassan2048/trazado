@@ -13,21 +13,21 @@
   "assisted"
  ],
  "weights": {
-  "log_distance": -1.694420183030225,
-  "inv_distance": -25.014672500889162,
-  "angle": 4.120324297263649,
-  "header": -0.7519126293885778,
-  "volley": -0.12564852934631113,
-  "from_corner": -0.41467437801184776,
-  "from_freekick": -0.12448035784671421,
-  "assist_cross": -0.342475844584624,
-  "assist_through": 0.9147839279276005,
-  "fast_break": 0.5777331683392088,
-  "assisted": 0.06944593850829686
+  "log_distance": -2.3214601697826662,
+  "inv_distance": -23.406811267336494,
+  "angle": 3.302596187333053,
+  "header": -0.8663773427749287,
+  "volley": -0.31598811583249914,
+  "from_corner": -0.5918449723389267,
+  "from_freekick": -0.3401356863130547,
+  "assist_cross": -0.28370700542270816,
+  "assist_through": 0.9370131548680588,
+  "fast_break": 0.47231225778274993,
+  "assisted": -0.22024179411559172
  },
- "intercept": 2.2178916479716193,
- "penalty": 0.8037383177570093,
- "trained_on": "La Liga, 291 matches, 7215 non-penalty shots, 681 goals",
- "auc": 0.755,
- "log_loss": 0.2718
+ "intercept": 4.542653643100864,
+ "penalty": 0.7773386034255599,
+ "trained_on": "La Liga, 2,225 matches (seasons 1819-2526), 51,769 non-penalty shots, 4,981 goals",
+ "auc": 0.777,
+ "log_loss": 0.268
 }

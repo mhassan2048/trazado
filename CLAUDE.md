@@ -21,7 +21,11 @@ Stack: Streamlit. Lightweight, stateless, scrape on demand, nothing persisted pe
 - No percentages where the denominator is under ten. Use fractions.
 - **xG and xT are allowed, as named models, under the rules below.** This reverses the original ban. That rule was written for an app whose entire subject was deliveries and first contacts, where danger reads from location and outcome alone. It stopped holding the moment the question became "how much of this team's threat came from dead balls", which is a question about quantity and cannot be answered with position.
 
-  What is served is **a specific model, never "xG" in the abstract**: fitted on 291 La Liga matches, 7,215 non-penalty shots, 681 goals. Out-of-fold log loss 0.2718 against a 0.3126 base rate, AUC 0.755, aggregate calibration 680.6 predicted against 681 scored. Agreed with FotMob to within 0.10 on both sides of the one match checked against it.
+  What is served is **a specific model, never "xG" in the abstract**: fitted on **2,225 La Liga matches** across seasons 2018-19 to 2025-26, 51,769 non-penalty shots, 4,981 goals. Out-of-fold log loss 0.2680 against a 0.3167 base rate, AUC 0.777, aggregate calibration 4,981.9 predicted against 4,981 scored.
+
+  **More data barely moved it, and that is worth knowing before anyone gathers more.** Held out a whole season and trained on random samples of the rest: 291 matches gives log loss 0.2727 and AUC 0.760; all 1,896 gives 0.2714 and 0.762. The model is parameter-limited, not data-limited — eleven coefficients saturate early. A gradient booster on the same features reaches 0.2691 / 0.767, which is a real gain and was declined: it would put sklearn and a pickled artefact back into the serving path that `lib/xg.py` exists to keep free of them.
+
+  What the larger sample genuinely bought is the **penalty constant, now 0.7773 from 759 penalties rather than 0.8037 from 107**, and coefficients that no longer rest on one season.
 
   **It is trained on one league.** A Bundesliga or Champions League card is out of distribution until that is checked. `lib.xg.validated_for` names which competitions have been, and the honest options are to validate or to withhold — not to let the number appear anyway.
 
