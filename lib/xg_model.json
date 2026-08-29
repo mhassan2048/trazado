@@ -13,21 +13,43 @@
   "assisted"
  ],
  "weights": {
-  "log_distance": -2.3214601697826662,
-  "inv_distance": -23.406811267336494,
-  "angle": 3.302596187333053,
-  "header": -0.8663773427749287,
-  "volley": -0.31598811583249914,
-  "from_corner": -0.5918449723389267,
-  "from_freekick": -0.3401356863130547,
-  "assist_cross": -0.28370700542270816,
-  "assist_through": 0.9370131548680588,
-  "fast_break": 0.47231225778274993,
-  "assisted": -0.22024179411559172
+  "log_distance": -2.395206225312973,
+  "inv_distance": -21.922890190550213,
+  "angle": 3.018879064036789,
+  "header": -0.9077576286570498,
+  "volley": -0.405635896470812,
+  "from_corner": -0.6422887957808228,
+  "from_freekick": -0.35239201729149006,
+  "assist_cross": -0.2385490374516375,
+  "assist_through": 0.8783507572551984,
+  "fast_break": 0.5110617972195491,
+  "assisted": -0.26149958442454596
  },
- "intercept": 4.542653643100864,
- "penalty": 0.7773386034255599,
- "trained_on": "La Liga, 2,225 matches (seasons 1819-2526), 51,769 non-penalty shots, 4,981 goals",
- "auc": 0.777,
- "log_loss": 0.268
+ "intercept": 4.8194639185966786,
+ "league_offset": {
+  "laliga": 0.0,
+  "premierleague": -0.03400877634834776,
+  "bundesliga": 0.09474137575141742,
+  "seriea": -0.037434536838693376,
+  "ligue1": 0.0283837675184398,
+  "_default": 0.010336366016563217
+ },
+ "penalty": 0.7876535229476406,
+ "penalty_by_league": {
+  "bundesliga": 0.7779,
+  "laliga": 0.7773,
+  "ligue1": 0.7952,
+  "premierleague": 0.8114,
+  "seriea": 0.776
+ },
+ "trained_on": "Big five leagues, 9,718 matches (2018-19 to 2025-26), 239,544 non-penalty shots, 24,000 goals",
+ "auc": 0.773,
+ "log_loss": 0.2766,
+ "validated": [
+  "laliga",
+  "premierleague",
+  "bundesliga",
+  "seriea",
+  "ligue1"
+ ]
 }

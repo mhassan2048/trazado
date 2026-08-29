@@ -56,7 +56,17 @@ SHOT_TYPES = frozenset({"Goal", "MissedShots", "SavedShot", "ShotOnPost"})
 ASSIST_EVENTS, ASSIST_SECONDS = 3, 5.0
 PHASE_EVENTS, PHASE_SECONDS = 10, 15.0
 
-VALIDATED_LEAGUES = frozenset({"laliga"})
+# Competition name as the feed gives it, to the key the model was fitted on.
+LEAGUE_OF = {
+    "premier league": "premierleague", "la liga": "laliga",
+    "serie a": "seriea", "bundesliga": "bundesliga", "ligue 1": "ligue1",
+}
+
+
+def league_key(match) -> str:
+    """Which league this match belongs to, or "" when it cannot be told."""
+    name = str((match.meta or {}).get("competition") or "").strip().lower()
+    return LEAGUE_OF.get(name, "")
 
 _spec: dict | None = None
 
@@ -69,8 +79,30 @@ def spec() -> dict:
     return _spec
 
 
-def penalty_value() -> float:
-    return float(spec()["penalty"])
+def penalty_value(league: str = "") -> float:
+    """Penalty conversion, per league where it was measured.
+
+    They differ more than expected -- 0.776 in Serie A against 0.811 in the
+    Premier League -- so the league value is used when it is known.
+    """
+    model = spec()
+    return float(model.get("penalty_by_league", {}).get(
+        league, model["penalty"]))
+
+
+def _offset(league: str) -> float:
+    """
+    The league's own intercept.
+
+    Fitted because the shared model was measurably biased by competition: it
+    under-predicted Bundesliga by 6.2% and over-predicted Serie A by 3.9%
+    while its overall calibration looked perfect. An unknown competition takes
+    the mean of the five rather than silently inheriting La Liga's.
+    """
+    offsets = spec().get("league_offset", {})
+    if league in offsets:
+        return float(offsets[league])
+    return float(offsets.get("_default", 0.0))
 
 
 def goal_distance(x: float, y: float) -> float:
@@ -133,13 +165,14 @@ def _phase(rows, index):
     return None
 
 
-def _probability(features: dict) -> float:
+def _probability(features: dict, league: str = "") -> float:
     model = spec()
-    z = model["intercept"] + sum(model["weights"][k] * v for k, v in features.items())
+    z = (model["intercept"] + _offset(league)
+         + sum(model["weights"][k] * v for k, v in features.items()))
     return 1.0 / (1.0 + math.exp(-z))
 
 
-def shots(match) -> pd.DataFrame:
+def shots(match, league: str | None = None) -> pd.DataFrame:
     """
     Every shot in the match with its npxG.
 
@@ -147,6 +180,7 @@ def shots(match) -> pd.DataFrame:
     caller can count them and report them separately -- but they must never be
     summed into an npxG total.
     """
+    league = league_key(match) if league is None else league
     rows = match.events.to_dict("records")
     out = []
     for i, row in enumerate(rows):
@@ -158,7 +192,7 @@ def shots(match) -> pd.DataFrame:
         penalty = _has(row, "Penalty")
         made, phase = _assist(rows, i), _phase(rows, i)
         distance, angle = goal_distance(x, y), goal_angle(x, y)
-        value = penalty_value() if penalty else _probability({
+        value = penalty_value(league) if penalty else _probability({
             "log_distance": math.log1p(distance),
             "inv_distance": 1.0 / (distance + 1.0),
             "angle": angle,
@@ -170,7 +204,7 @@ def shots(match) -> pd.DataFrame:
             "assist_through": float(bool(made and _has(made, "ThroughBall"))),
             "fast_break": float(_has(row, "FastBreak")),
             "assisted": float(made is not None),
-        })
+        }, league)
         out.append({
             "seq": row.get("seq"), "minute": row.get("minute"),
             "team": row.get("team"), "player": row.get("player"),
@@ -183,5 +217,13 @@ def shots(match) -> pd.DataFrame:
 
 
 def validated_for(competition_key: str) -> bool:
-    """Whether the model has been checked against this competition."""
-    return (competition_key or "").lower() in VALIDATED_LEAGUES
+    """
+    Whether the model was fitted on this competition.
+
+    The big five are in; the Champions League is not, and no amount of
+    domestic data makes it so -- the spec's rule is to validate or withhold,
+    not to let the number appear anyway.
+    """
+    key = (competition_key or "").lower()
+    key = {"epl": "premierleague"}.get(key, key)
+    return key in set(spec().get("validated", []))
